@@ -5,12 +5,8 @@ Tests for the BaseMode class.
 import os
 import mu
 import pytest
-from mu.modes.base import (
-    BaseMode,
-    MicroPythonMode,
-    FileManager,
-    StuduinoBitFileManager,
-)
+from mu.modes.base import (BaseMode, MicroPythonMode, FileManager,
+                           StuduinoBitFileManager)
 from unittest import mock
 
 
@@ -21,9 +17,9 @@ def test_base_mode():
     editor = mock.MagicMock()
     view = mock.MagicMock()
     bm = BaseMode(editor, view)
-    assert bm.name == "UNNAMED MODE"
-    assert bm.description == "DESCRIPTION NOT AVAILABLE."
-    assert bm.icon == "help"
+    assert bm.name == 'UNNAMED MODE'
+    assert bm.description == 'DESCRIPTION NOT AVAILABLE.'
+    assert bm.icon == 'help'
     assert bm.is_debugger is False
     assert bm.editor == editor
     assert bm.view == view
@@ -39,26 +35,23 @@ def test_base_mode_workspace_dir():
     Return settings file workspace value.
     """
     # read from our demo settings.json
-    with mock.patch(
-        "mu.modes.base.get_settings_path", return_value="tests/settings.json"
-    ), mock.patch("os.path.isdir", return_value=True):
+    with mock.patch('mu.modes.base.get_settings_path',
+                    return_value='tests/settings.json'), \
+            mock.patch('os.path.isdir', return_value=True):
         editor = mock.MagicMock()
         view = mock.MagicMock()
         bm = BaseMode(editor, view)
-        assert bm.workspace_dir() == "/home/foo/mycode"
+        assert bm.workspace_dir() == '/home/foo/mycode'
 
 
 def test_base_mode_workspace_not_present():
     """
     No workspace key in settings file, return default folder.
     """
-    default_workspace = os.path.join(
-        mu.logic.HOME_DIRECTORY, mu.logic.WORKSPACE_NAME
-    )
-    with mock.patch(
-        "mu.modes.base.get_settings_path",
-        return_value="tests/settingswithoutworkspace.json",
-    ):
+    default_workspace = os.path.join(mu.logic.HOME_DIRECTORY,
+                                     mu.logic.WORKSPACE_NAME)
+    with mock.patch('mu.modes.base.get_settings_path',
+                    return_value='tests/settingswithoutworkspace.json'):
         editor = mock.MagicMock()
         view = mock.MagicMock()
         bm = BaseMode(editor, view)
@@ -69,15 +62,13 @@ def test_base_mode_workspace_invalid_value():
     """
     Invalid workspace key in settings file, return default folder.
     """
-    default_workspace = os.path.join(
-        mu.logic.HOME_DIRECTORY, mu.logic.WORKSPACE_NAME
-    )
+    default_workspace = os.path.join(mu.logic.HOME_DIRECTORY,
+                                     mu.logic.WORKSPACE_NAME)
     # read from our demo settings.json
-    with mock.patch(
-        "mu.modes.base.get_settings_path", return_value="tests/settings.json"
-    ), mock.patch("os.path.isdir", return_value=False), mock.patch(
-        "mu.modes.base.logger", return_value=None
-    ) as logger:
+    with mock.patch('mu.modes.base.get_settings_path',
+                    return_value='tests/settings.json'), \
+            mock.patch('os.path.isdir', return_value=False), \
+            mock.patch('mu.modes.base.logger', return_value=None) as logger:
         editor = mock.MagicMock()
         view = mock.MagicMock()
         bm = BaseMode(editor, view)
@@ -89,15 +80,13 @@ def test_base_mode_workspace_invalid_json():
     """
     Invalid workspace key in settings file, return default folder.
     """
-    default_workspace = os.path.join(
-        mu.logic.HOME_DIRECTORY, mu.logic.WORKSPACE_NAME
-    )
+    default_workspace = os.path.join(mu.logic.HOME_DIRECTORY,
+                                     mu.logic.WORKSPACE_NAME)
     mock_open = mock.mock_open(read_data='{"workspace": invalid}')
-    with mock.patch(
-        "mu.modes.base.get_settings_path", return_value="a.json"
-    ), mock.patch("builtins.open", mock_open), mock.patch(
-        "mu.modes.base.logger", return_value=None
-    ) as logger:
+    with mock.patch('mu.modes.base.get_settings_path',
+                    return_value='a.json'), \
+            mock.patch('builtins.open', mock_open), \
+            mock.patch('mu.modes.base.logger', return_value=None) as logger:
         editor = mock.MagicMock()
         view = mock.MagicMock()
         bm = BaseMode(editor, view)
@@ -109,15 +98,13 @@ def test_base_mode_workspace_no_settings_file():
     """
     Invalid settings file, return default folder.
     """
-    default_workspace = os.path.join(
-        mu.logic.HOME_DIRECTORY, mu.logic.WORKSPACE_NAME
-    )
+    default_workspace = os.path.join(mu.logic.HOME_DIRECTORY,
+                                     mu.logic.WORKSPACE_NAME)
     mock_open = mock.MagicMock(side_effect=FileNotFoundError())
-    with mock.patch(
-        "mu.modes.base.get_settings_path", return_value="tests/settings.json"
-    ), mock.patch("builtins.open", mock_open), mock.patch(
-        "mu.modes.base.logger", return_value=None
-    ) as logger:
+    with mock.patch('mu.modes.base.get_settings_path',
+                    return_value='tests/settings.json'), \
+            mock.patch('builtins.open', mock_open), \
+            mock.patch('mu.modes.base.logger', return_value=None) as logger:
         editor = mock.MagicMock()
         view = mock.MagicMock()
         bm = BaseMode(editor, view)
@@ -132,12 +119,15 @@ def test_base_mode_set_buttons():
     """
     editor = mock.MagicMock()
     view = mock.MagicMock()
-    view.button_bar.slots = {"foo": mock.MagicMock(), "bar": mock.MagicMock()}
+    view.button_bar.slots = {
+        'foo': mock.MagicMock(),
+        'bar': mock.MagicMock()
+    }
     bm = BaseMode(editor, view)
     bm.set_buttons(foo=True, bar=False, baz=True)
-    view.button_bar.slots["foo"].setEnabled.assert_called_once_with(True)
-    view.button_bar.slots["bar"].setEnabled.assert_called_once_with(False)
-    assert "baz" not in view.button_bar.slots
+    view.button_bar.slots['foo'].setEnabled.assert_called_once_with(True)
+    view.button_bar.slots['bar'].setEnabled.assert_called_once_with(False)
+    assert 'baz' not in view.button_bar.slots
 
 
 def test_base_mode_add_plotter():
@@ -165,21 +155,17 @@ def test_base_mode_remove_plotter():
     mock_csv_writer = mock.MagicMock()
     mock_csv = mock.MagicMock()
     mock_csv.writer.return_value = mock_csv_writer
-    with mock.patch(
-        "mu.modes.base.os.path.exists", return_value=False
-    ), mock.patch("mu.modes.base.os.makedirs", mock_mkdir), mock.patch(
-        "builtins.open", mock_open
-    ), mock.patch(
-        "mu.modes.base.csv", mock_csv
-    ):
+    with mock.patch('mu.modes.base.os.path.exists', return_value=False), \
+            mock.patch('mu.modes.base.os.makedirs', mock_mkdir), \
+            mock.patch('builtins.open', mock_open), \
+            mock.patch('mu.modes.base.csv', mock_csv):
         bm.remove_plotter()
     assert bm.plotter is None
     view.remove_plotter.assert_called_once_with()
-    dd = os.path.join(bm.workspace_dir(), "data_capture")
+    dd = os.path.join(bm.workspace_dir(), 'data_capture')
     mock_mkdir.assert_called_once_with(dd)
-    mock_csv_writer.writerows.assert_called_once_with(
-        view.plotter_pane.raw_data
-    )
+    mock_csv_writer.writerows.\
+        assert_called_once_with(view.plotter_pane.raw_data)
 
 
 def test_base_on_data_flood():
@@ -202,7 +188,7 @@ def test_base_mode_open_file():
     editor = mock.MagicMock()
     view = mock.MagicMock()
     bm = BaseMode(editor, view)
-    text, newline = bm.open_file("unused/path")
+    text, newline = bm.open_file('unused/path')
     assert text is None
     assert newline is None
 
@@ -221,15 +207,14 @@ def test_micropython_mode_find_device():
         mock_port.productIdentifier.return_value = pid
         mock_port.vendorIdentifier = mock.MagicMock()
         mock_port.vendorIdentifier.return_value = vid
-        mock_port.portName = mock.MagicMock(return_value="COM0")
-        mock_port.serialNumber = mock.MagicMock(return_value="12345")
+        mock_port.portName = mock.MagicMock(return_value='COM0')
+        mock_port.serialNumber = mock.MagicMock(return_value='12345')
         mock_os = mock.MagicMock()
-        mock_os.name = "nt"
-        with mock.patch(
-            "mu.modes.base.QSerialPortInfo.availablePorts",
-            return_value=[mock_port],
-        ), mock.patch("mu.modes.base.os", mock_os):
-            assert mm.find_device() == ("COM0", "12345")
+        mock_os.name = 'nt'
+        with mock.patch('mu.modes.base.QSerialPortInfo.availablePorts',
+                        return_value=[mock_port, ]), \
+                mock.patch('mu.modes.base.os', mock_os):
+            assert mm.find_device() == ('COM0', '12345')
 
 
 def test_micropython_mode_find_device_no_ports():
@@ -239,9 +224,8 @@ def test_micropython_mode_find_device_no_ports():
     editor = mock.MagicMock()
     view = mock.MagicMock()
     mm = MicroPythonMode(editor, view)
-    with mock.patch(
-        "mu.modes.base.QSerialPortInfo.availablePorts", return_value=[]
-    ):
+    with mock.patch('mu.modes.base.QSerialPortInfo.availablePorts',
+                    return_value=[]):
         assert mm.find_device() == (None, None)
 
 
@@ -255,11 +239,9 @@ def test_micropython_mode_find_device_but_no_device():
     mock_port = mock.MagicMock()
     mock_port.productIdentifier = mock.MagicMock(return_value=666)
     mock_port.vendorIdentifier = mock.MagicMock(return_value=999)
-    mock_port.serialNumber = mock.MagicMock(return_value="123456")
-    with mock.patch(
-        "mu.modes.base.QSerialPortInfo.availablePorts",
-        return_value=[mock_port],
-    ):
+    mock_port.serialNumber = mock.MagicMock(return_value='123456')
+    with mock.patch('mu.modes.base.QSerialPortInfo.availablePorts',
+                    return_value=[mock_port, ]):
         assert mm.find_device() == (None, None)
 
 
@@ -271,8 +253,8 @@ def test_micropython_mode_port_path_posix():
     editor = mock.MagicMock()
     view = mock.MagicMock()
     mm = MicroPythonMode(editor, view)
-    with mock.patch("os.name", "posix"):
-        assert mm.port_path("tty1") == "/dev/tty1"
+    with mock.patch('os.name', 'posix'):
+        assert mm.port_path('tty1') == "/dev/tty1"
 
 
 def test_micropython_mode_port_path_nt():
@@ -283,8 +265,8 @@ def test_micropython_mode_port_path_nt():
     editor = mock.MagicMock()
     view = mock.MagicMock()
     mm = MicroPythonMode(editor, view)
-    with mock.patch("os.name", "nt"):
-        assert mm.port_path("COM0") == "COM0"
+    with mock.patch('os.name', 'nt'):
+        assert mm.port_path('COM0') == "COM0"
 
 
 def test_micropython_mode_port_path_unknown():
@@ -294,9 +276,9 @@ def test_micropython_mode_port_path_unknown():
     editor = mock.MagicMock()
     view = mock.MagicMock()
     mm = MicroPythonMode(editor, view)
-    with mock.patch("os.name", "foo"):
+    with mock.patch('os.name', 'foo'):
         with pytest.raises(NotImplementedError):
-            mm.port_path("bar")
+            mm.port_path('bar')
 
 
 def test_micropython_mode_add_repl_no_port():
@@ -311,7 +293,7 @@ def test_micropython_mode_add_repl_no_port():
     mm.find_device = mock.MagicMock(return_value=(None, None))
     mm.add_repl()
     assert view.show_message.call_count == 1
-    message = "Could not find an attached device."
+    message = _('Could not find an attached device.')
     assert view.show_message.call_args[0][0] == message
 
 
@@ -324,10 +306,10 @@ def test_micropython_mode_add_repl_ioerror():
     editor = mock.MagicMock()
     view = mock.MagicMock()
     view.show_message = mock.MagicMock()
-    ex = IOError("BOOM")
+    ex = IOError('BOOM')
     view.add_micropython_repl = mock.MagicMock(side_effect=ex)
     mm = MicroPythonMode(editor, view)
-    mm.find_device = mock.MagicMock(return_value=("COM0", "12345"))
+    mm.find_device = mock.MagicMock(return_value=('COM0', '12345'))
     mm.add_repl()
     assert view.show_message.call_count == 1
     assert view.show_message.call_args[0][0] == str(ex)
@@ -339,11 +321,11 @@ def test_micropython_mode_add_repl_exception():
     """
     editor = mock.MagicMock()
     view = mock.MagicMock()
-    ex = Exception("BOOM")
+    ex = Exception('BOOM')
     view.add_micropython_repl = mock.MagicMock(side_effect=ex)
     mm = MicroPythonMode(editor, view)
-    mm.find_device = mock.MagicMock(return_value=("COM0", "12345"))
-    with mock.patch("mu.modes.base.logger", return_value=None) as logger:
+    mm.find_device = mock.MagicMock(return_value=('COM0', '12345'))
+    with mock.patch('mu.modes.base.logger', return_value=None) as logger:
         mm.add_repl()
         logger.error.assert_called_once_with(ex)
 
@@ -358,11 +340,11 @@ def test_micropython_mode_add_repl():
     view.show_message = mock.MagicMock()
     view.add_micropython_repl = mock.MagicMock()
     mm = MicroPythonMode(editor, view)
-    mm.find_device = mock.MagicMock(return_value=("COM0", "12345"))
-    with mock.patch("os.name", "nt"):
+    mm.find_device = mock.MagicMock(return_value=('COM0', '12345'))
+    with mock.patch('os.name', 'nt'):
         mm.add_repl()
     assert view.show_message.call_count == 0
-    assert view.add_micropython_repl.call_args[0][0] == "COM0"
+    assert view.add_micropython_repl.call_args[0][0] == 'COM0'
 
 
 def test_micropython_mode_add_repl_no_force_interrupt():
@@ -376,11 +358,11 @@ def test_micropython_mode_add_repl_no_force_interrupt():
     view.add_micropython_repl = mock.MagicMock()
     mm = MicroPythonMode(editor, view)
     mm.force_interrupt = False
-    mm.find_device = mock.MagicMock(return_value=("COM0", "12345"))
-    with mock.patch("os.name", "nt"):
+    mm.find_device = mock.MagicMock(return_value=('COM0', '12345'))
+    with mock.patch('os.name', 'nt'):
         mm.add_repl()
     assert view.show_message.call_count == 0
-    assert view.add_micropython_repl.call_args[0][0] == "COM0"
+    assert view.add_micropython_repl.call_args[0][0] == 'COM0'
     assert view.add_micropython_repl.call_args[0][2] is False
 
 
@@ -463,7 +445,7 @@ def test_micropython_mode_add_plotter_no_port():
     mm.find_device = mock.MagicMock(return_value=(None, None))
     mm.add_plotter()
     assert view.show_message.call_count == 1
-    message = "Could not find an attached device."
+    message = _('Could not find an attached device.')
     assert view.show_message.call_args[0][0] == message
 
 
@@ -476,10 +458,10 @@ def test_micropython_mode_add_plotter_ioerror():
     editor = mock.MagicMock()
     view = mock.MagicMock()
     view.show_message = mock.MagicMock()
-    ex = IOError("BOOM")
+    ex = IOError('BOOM')
     view.add_micropython_plotter = mock.MagicMock(side_effect=ex)
     mm = MicroPythonMode(editor, view)
-    mm.find_device = mock.MagicMock(return_value=("COM0", "123456"))
+    mm.find_device = mock.MagicMock(return_value=('COM0', '123456'))
     mm.add_plotter()
     assert view.show_message.call_count == 1
     assert view.show_message.call_args[0][0] == str(ex)
@@ -491,11 +473,11 @@ def test_micropython_mode_add_plotter_exception():
     """
     editor = mock.MagicMock()
     view = mock.MagicMock()
-    ex = Exception("BOOM")
+    ex = Exception('BOOM')
     view.add_micropython_plotter = mock.MagicMock(side_effect=ex)
     mm = MicroPythonMode(editor, view)
-    mm.find_device = mock.MagicMock(return_value=("COM0", "12345"))
-    with mock.patch("mu.modes.base.logger", return_value=None) as logger:
+    mm.find_device = mock.MagicMock(return_value=('COM0', '12345'))
+    with mock.patch('mu.modes.base.logger', return_value=None) as logger:
         mm.add_plotter()
         logger.error.assert_called_once_with(ex)
 
@@ -510,11 +492,11 @@ def test_micropython_mode_add_plotter():
     view.show_message = mock.MagicMock()
     view.add_micropython_plotter = mock.MagicMock()
     mm = MicroPythonMode(editor, view)
-    mm.find_device = mock.MagicMock(return_value=("COM0", "12345"))
-    with mock.patch("os.name", "nt"):
+    mm.find_device = mock.MagicMock(return_value=('COM0', '12345'))
+    with mock.patch('os.name', 'nt'):
         mm.add_plotter()
     assert view.show_message.call_count == 0
-    assert view.add_micropython_plotter.call_args[0][0] == "COM0"
+    assert view.add_micropython_plotter.call_args[0][0] == 'COM0'
 
 
 def test_micropython_on_data_flood():
@@ -526,7 +508,7 @@ def test_micropython_on_data_flood():
     view = mock.MagicMock()
     mm = MicroPythonMode(editor, view)
     mm.remove_repl = mock.MagicMock()
-    with mock.patch("builtins.super") as mock_super:
+    with mock.patch('builtins.super') as mock_super:
         mm.on_data_flood()
         mm.remove_repl.assert_called_once_with()
         mock_super().on_data_flood.assert_called_once_with()
@@ -539,11 +521,10 @@ def test_FileManager_on_start():
     """
     fm = FileManager("/dev/ttyUSB0")
     fm.ls = mock.MagicMock()
-    with mock.patch("mu.modes.base.Serial") as mock_serial:
+    with mock.patch('mu.modes.base.Serial') as mock_serial:
         fm.on_start()
-        mock_serial.assert_called_once_with(
-            "/dev/ttyUSB0", 115200, timeout=1, parity="N"
-        )
+        mock_serial.assert_called_once_with("/dev/ttyUSB0", 115200,
+                                            timeout=1, parity='N')
     fm.ls.assert_called_once_with()
 
 
@@ -556,12 +537,11 @@ def test_FileManager_on_start_fails():
     """
     fm = FileManager("/dev/ttyUSB0")
     fm.on_list_fail = mock.MagicMock()
-    mock_serial = mock.MagicMock(side_effect=Exception("BOOM!"))
-    with mock.patch("mu.modes.base.Serial", mock_serial):
+    mock_serial = mock.MagicMock(side_effect=Exception('BOOM!'))
+    with mock.patch('mu.modes.base.Serial', mock_serial):
         fm.on_start()
-        mock_serial.assert_called_once_with(
-            "/dev/ttyUSB0", 115200, timeout=1, parity="N"
-        )
+        mock_serial.assert_called_once_with("/dev/ttyUSB0", 115200,
+                                            timeout=1, parity='N')
     fm.on_list_fail.emit.assert_called_once_with()
 
 
@@ -573,10 +553,10 @@ def test_FileManager_ls():
     fm = FileManager("/dev/ttyUSB0")
     fm.serial = mock.MagicMock()
     fm.on_list_files = mock.MagicMock()
-    mock_ls = mock.MagicMock(return_value=["foo.py", "bar.py"])
-    with mock.patch("mu.modes.base.microfs.ls", mock_ls):
+    mock_ls = mock.MagicMock(return_value=['foo.py', 'bar.py', ])
+    with mock.patch('mu.modes.base.microfs.ls', mock_ls):
         fm.ls()
-    fm.on_list_files.emit.assert_called_once_with(("foo.py", "bar.py"))
+    fm.on_list_files.emit.assert_called_once_with(('foo.py', 'bar.py'))
 
 
 def test_FileManager_ls_fail():
@@ -585,7 +565,8 @@ def test_FileManager_ls_fail():
     """
     fm = FileManager("/dev/ttyUSB0")
     fm.on_list_fail = mock.MagicMock()
-    with mock.patch("mu.modes.base.microfs.ls", side_effect=Exception("boom")):
+    with mock.patch('mu.modes.base.microfs.ls',
+                    side_effect=Exception('boom')):
         fm.ls()
     fm.on_list_fail.emit.assert_called_once_with()
 
@@ -599,10 +580,10 @@ def test_fileManager_get():
     fm.serial = mock.MagicMock()
     fm.on_get_file = mock.MagicMock()
     mock_get = mock.MagicMock()
-    with mock.patch("mu.modes.base.microfs.get", mock_get):
-        fm.get("foo.py", "bar.py")
-    mock_get.assert_called_once_with("foo.py", "bar.py", serial=fm.serial)
-    fm.on_get_file.emit.assert_called_once_with("foo.py")
+    with mock.patch('mu.modes.base.microfs.get', mock_get):
+        fm.get('foo.py', 'bar.py')
+    mock_get.assert_called_once_with('foo.py', 'bar.py', serial=fm.serial)
+    fm.on_get_file.emit.assert_called_once_with('foo.py')
 
 
 def test_FileManager_get_fail():
@@ -611,11 +592,10 @@ def test_FileManager_get_fail():
     """
     fm = FileManager("/dev/ttyUSB0")
     fm.on_get_fail = mock.MagicMock()
-    with mock.patch(
-        "mu.modes.base.microfs.get", side_effect=Exception("boom")
-    ):
-        fm.get("foo.py", "bar.py")
-    fm.on_get_fail.emit.assert_called_once_with("foo.py")
+    with mock.patch('mu.modes.base.microfs.get',
+                    side_effect=Exception('boom')):
+        fm.get('foo.py', 'bar.py')
+    fm.on_get_fail.emit.assert_called_once_with('foo.py')
 
 
 def test_FileManager_put():
@@ -627,11 +607,11 @@ def test_FileManager_put():
     fm.serial = mock.MagicMock()
     fm.on_put_file = mock.MagicMock()
     mock_put = mock.MagicMock()
-    path = os.path.join("directory", "foo.py")
-    with mock.patch("mu.modes.base.microfs.put", mock_put):
+    path = os.path.join('directory', 'foo.py')
+    with mock.patch('mu.modes.base.microfs.put', mock_put):
         fm.put(path)
     mock_put.assert_called_once_with(path, target=None, serial=fm.serial)
-    fm.on_put_file.emit.assert_called_once_with("foo.py")
+    fm.on_put_file.emit.assert_called_once_with('foo.py')
 
 
 def test_FileManager_put_fail():
@@ -640,11 +620,10 @@ def test_FileManager_put_fail():
     """
     fm = FileManager("/dev/ttyUSB0")
     fm.on_put_fail = mock.MagicMock()
-    with mock.patch(
-        "mu.modes.base.microfs.put", side_effect=Exception("boom")
-    ):
-        fm.put("foo.py")
-    fm.on_put_fail.emit.assert_called_once_with("foo.py")
+    with mock.patch('mu.modes.base.microfs.put',
+                    side_effect=Exception('boom')):
+        fm.put('foo.py')
+    fm.on_put_fail.emit.assert_called_once_with('foo.py')
 
 
 def test_FileManager_delete():
@@ -656,10 +635,10 @@ def test_FileManager_delete():
     fm.serial = mock.MagicMock()
     fm.on_delete_file = mock.MagicMock()
     mock_rm = mock.MagicMock()
-    with mock.patch("mu.modes.base.microfs.rm", mock_rm):
-        fm.delete("foo.py")
-    mock_rm.assert_called_once_with("foo.py", serial=fm.serial)
-    fm.on_delete_file.emit.assert_called_once_with("foo.py")
+    with mock.patch('mu.modes.base.microfs.rm', mock_rm):
+        fm.delete('foo.py')
+    mock_rm.assert_called_once_with('foo.py', serial=fm.serial)
+    fm.on_delete_file.emit.assert_called_once_with('foo.py')
 
 
 def test_FileManager_delete_fail():
@@ -668,9 +647,10 @@ def test_FileManager_delete_fail():
     """
     fm = FileManager("/dev/ttyUSB0")
     fm.on_delete_fail = mock.MagicMock()
-    with mock.patch("mu.modes.base.microfs.rm", side_effect=Exception("boom")):
-        fm.delete("foo.py")
-    fm.on_delete_fail.emit.assert_called_once_with("foo.py")
+    with mock.patch('mu.modes.base.microfs.rm',
+                    side_effect=Exception('boom')):
+        fm.delete('foo.py')
+    fm.on_delete_fail.emit.assert_called_once_with('foo.py')
 
 
 def test_StuduinoBitFileManager_on_start():
@@ -680,11 +660,10 @@ def test_StuduinoBitFileManager_on_start():
     """
     fm = StuduinoBitFileManager("/dev/ttyUSB0")
     fm.tree = mock.MagicMock()
-    with mock.patch("mu.modes.base.Serial") as mock_serial:
+    with mock.patch('mu.modes.base.Serial') as mock_serial:
         fm.on_start()
-        mock_serial.assert_called_once_with(
-            "/dev/ttyUSB0", 115200, timeout=1, parity="N"
-        )
+        mock_serial.assert_called_once_with("/dev/ttyUSB0", 115200,
+                                            timeout=1, parity='N')
     fm.tree.assert_called_once_with()
 
 
@@ -697,12 +676,11 @@ def test_StuduinoBitFileManager_on_start_fails():
     """
     fm = StuduinoBitFileManager("/dev/ttyUSB0")
     fm.on_list_fail = mock.MagicMock()
-    mock_serial = mock.MagicMock(side_effect=Exception("BOOM!"))
-    with mock.patch("mu.modes.base.Serial", mock_serial):
+    mock_serial = mock.MagicMock(side_effect=Exception('BOOM!'))
+    with mock.patch('mu.modes.base.Serial', mock_serial):
         fm.on_start()
-        mock_serial.assert_called_once_with(
-            "/dev/ttyUSB0", 115200, timeout=1, parity="N"
-        )
+        mock_serial.assert_called_once_with("/dev/ttyUSB0", 115200,
+                                            timeout=1, parity='N')
     fm.on_list_fail.emit.assert_called_once_with()
 
 
@@ -715,13 +693,12 @@ def test_StuduinoBitFileManager_put():
     fm.serial = mock.MagicMock()
     fm.on_put_file = mock.MagicMock()
     mock_put = mock.MagicMock()
-    path = os.path.join("directory", "foo.py")
-    with mock.patch("mu.modes.base.microfs.put", mock_put):
-        fm.put(path, "distpath")
-    mock_put.assert_called_once_with(
-        path, target="distpath/foo.py", serial=fm.serial
-    )
-    fm.on_put_file.emit.assert_called_once_with("foo.py")
+    path = os.path.join('directory', 'foo.py')
+    with mock.patch('mu.modes.base.microfs.put', mock_put):
+        fm.put(path, 'distpath')
+    mock_put.assert_called_once_with(path, target='distpath/foo.py',
+                                     serial=fm.serial)
+    fm.on_put_file.emit.assert_called_once_with('foo.py')
 
 
 def test_StuduinoBitFileManager_put_fail():
@@ -730,11 +707,10 @@ def test_StuduinoBitFileManager_put_fail():
     """
     fm = StuduinoBitFileManager("/dev/ttyUSB0")
     fm.on_put_fail = mock.MagicMock()
-    with mock.patch(
-        "mu.modes.base.microfs.put", side_effect=Exception("boom")
-    ):
-        fm.put("foo.py", "distpath")
-    fm.on_put_fail.emit.assert_called_once_with("foo.py")
+    with mock.patch('mu.modes.base.microfs.put',
+                    side_effect=Exception('boom')):
+        fm.put('foo.py', 'distpath')
+    fm.on_put_fail.emit.assert_called_once_with('foo.py')
 
 
 def test_StuduinoBitFileManager_tree():
@@ -745,10 +721,10 @@ def test_StuduinoBitFileManager_tree():
     fm = StuduinoBitFileManager("/dev/ttyUSB0")
     fm.serial = mock.MagicMock()
     fm.on_list_files = mock.MagicMock()
-    mock_tree = mock.MagicMock(return_value=["foo.py", "bar.py"])
-    with mock.patch("mu.modes.base.microfs.tree", mock_tree):
+    mock_tree = mock.MagicMock(return_value=['foo.py', 'bar.py', ])
+    with mock.patch('mu.modes.base.microfs.tree', mock_tree):
         fm.tree()
-    fm.on_list_files.emit.assert_called_once_with(("foo.py", "bar.py"))
+    fm.on_list_files.emit.assert_called_once_with(('foo.py', 'bar.py'))
 
 
 def test_StuduinoFileManager_tree_fail():
@@ -757,8 +733,7 @@ def test_StuduinoFileManager_tree_fail():
     """
     fm = StuduinoBitFileManager("/dev/ttyUSB0")
     fm.on_list_fail = mock.MagicMock()
-    with mock.patch(
-        "mu.modes.base.microfs.tree", side_effect=Exception("boom")
-    ):
+    with mock.patch('mu.modes.base.microfs.tree',
+                    side_effect=Exception('boom')):
         fm.tree()
     fm.on_list_fail.emit.assert_called_once_with()
