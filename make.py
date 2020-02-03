@@ -282,7 +282,7 @@ def publish_live():
 def win32():
     """Build 32-bit Windows installer
     """
-    check()
+    # check()
     print("Building 32-bit Windows installer")
     return subprocess.run(
         ["python", "win_installer.py", "32", "setup.py"]

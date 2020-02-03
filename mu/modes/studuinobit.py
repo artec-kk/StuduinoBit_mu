@@ -141,70 +141,118 @@ class StuduinoBitMode(MicroPythonMode):
             )
             self.view.show_message(message, information)
 
-    def toggle_flash(self, event):
-        """
-        Display the folder to regist script. Return a dictionary of the
-        settings that may have been changed by the admin dialog.
-        """
-        regist_box = RegisterWindow(self.view)
-        result = regist_box.exec()
-        if result == 0:
-            return
+    def reboot(self, serial):
+        serial.write(b"\x03")  # Ctrl+C
+        serial.read_until(b">>>")  # Read until prompt.
+        serial.write(b"\x01")  # Ctrl+A
+        serial.write("import machine\r\n".encode("utf-8"))
+        time.sleep(0.01)
+        serial.write("machine.reset()\r\n".encode("utf-8"))
+        time.sleep(0.01)
+        serial.write(b"\x04")
+        serial.read_until(
+            b"Starting scheduler on PRO CPU"
+        )  # Read until prompt.
 
-        # Display sending message
-        self.editor.show_status_message(_("Updating..."))
-
-        # Display sending message
-        reg_info = regist_box.get_register_info()
-        reg_num = reg_info[0]
-
-        tab = self.view.current_tab
-        usr_file = os.path.join(
-            HOME_DIRECTORY,
-            WORKSPACE_NAME,
-            "studuinobit",
-            "usr" + reg_num + ".py",
-        )
-        save_and_encode(tab.text(), usr_file, tab.newline)
-
-        # Send script
-        device_port, serial_number = self.find_device()
-        serial = None
-        exp_flag = False
+    def reboot_and_prompt(self, serial):
         try:
-            serial = Serial(device_port, 115200, timeout=1, parity="N")
-            filename = os.path.basename(usr_file)
-            microfs.put(usr_file, "usr/" + filename, serial)
-            microfs.execute(
-                [
-                    "import machine",
-                    'machine.nvs_setint("lastSelected", {0})'.format(reg_num),
-                ],
-                serial,
-            )
-            time.sleep(0.1)
-            serial.write(b"\x04")
+            self.reboot(serial)
+            # display prompt
+            time.sleep(1)
+            serial.write(b"\x03")  # Ctrl+C
+            serial.read_until(b">>>")  # Read until prompt.
         except Exception as e:
             logger.error(e)
-            exp_flag = True
-        finally:
-            if serial is not None:
+            raise Exception("reboot")
+
+    def toggle_flash(self, event):
+        def save():
+            try:
+                # Display dialog
+                regist_box = RegisterWindow(self.view)
+                result = regist_box.exec()
+                if result == 0:
+                    return None, None
+
+                # Save file
+                reg_info = regist_box.get_register_info()
+                reg_num = reg_info[0]
+
+                tab = self.view.current_tab
+                usr_file = os.path.join(
+                    HOME_DIRECTORY,
+                    WORKSPACE_NAME,
+                    "studuinobit",
+                    "usr" + reg_num + ".py",
+                )
+                save_and_encode(tab.text(), usr_file, tab.newline)
+                return reg_num, usr_file
+            except Exception as e:
+                logger.error(e)
+                raise Exception("save")
+
+        def upload(serial, usr_file):
+            try:
+                filename = os.path.basename(usr_file)
+                microfs.put(usr_file, "usr/" + filename, serial)
+            except Exception as e:
+                logger.error(e)
+                raise Exception("write_file")
+
+        def restart(serial, reg_num):
+            set_start_index = [
+                "import machine",
+                'machine.nvs_setint("lastSelected", {0})'.format(reg_num),
+            ]
+
+            try:
+                microfs.execute(set_start_index, serial)
+                serial.write(b"\x04")
+                self.reboot(serial)
+            except Exception as e:
+                logger.error(e)
+                raise Exception("restart")
+
+        # Serial port open
+        device_port, serial_number = self.find_device()
+        serial = None
+        serial = Serial(device_port, 115200, timeout=3, parity="N")
+
+        try:
+            # Reboot MicroPython and Prompt
+            self.reboot_and_prompt(serial)
+            # save usr*.py local
+            reg_num, usr_file = save()
+            if reg_num == None and usr_file == None:
                 serial.dtr = True
                 serial.close()
-
-        self.toggle_repl(None)
-        self.toggle_repl(None)
-
-        # dlg_msg.close()
-        if not exp_flag:
-            self.editor.show_status_message(
-                _(
-                    "Finished transfer. \
-                Press the reset button on the Studuino:bit"
+                return
+            # send usr*.py target
+            upload(serial, usr_file)
+            # Restart
+            restart(serial, reg_num)
+        except Exception as e:
+            print(e.args)
+            message = e.args[0]
+            if (
+                message == "reboot"
+                or message == "write_file"
+                or message == "restart"
+            ):
+                self.editor.show_status_message(
+                    _("Reboot Error: Unplug and plug in the UsB cable")
                 )
-            )
-        else:
-            self.editor.show_status_message(_("Can't transfer."))
+            if message == "save":
+                self.editor.show_status_message(
+                    _("Save Error: Restart Mu Editor")
+                )
+            serial.dtr = True
+            serial.close()
+            return
+
+        self.editor.show_status_message(_("Transfer success"))
+        serial.dtr = True
+        serial.close()
 
     def toggle_plotter(self, event):
         """
@@ -237,12 +285,13 @@ class StuduinoBitMode(MicroPythonMode):
         if not self.repl:
             device_port, serial_number = self.find_device()
             try:
-                serial = Serial(device_port, 115200, timeout=1, parity="N")
+                serial = Serial(device_port, 115200, timeout=3, parity="N")
             except Exception as e:
                 logger.error(e)
                 return
 
             try:
+                self.reboot_and_prompt(serial)
                 microfs.execute(
                     [
                         "import machine",
@@ -250,8 +299,11 @@ class StuduinoBitMode(MicroPythonMode):
                     ],
                     serial,
                 )
+
             except IOError as e:
-                self.editor.show_status_message(_("Please REST Button"))
+                self.editor.show_status_message(
+                    _("Reboot Error: Unplug and plug in the UsB cable")
+                )
                 logger.error(e)
                 serial.close()
                 return
@@ -271,7 +323,12 @@ class StuduinoBitMode(MicroPythonMode):
             )
             self.view.show_message(message, information)
             return
-        python_script = tab.text().split("\n")
+
+        python_script = tab.text().replace("\r\n", "\n")
+        python_script = python_script.split("\n")
+
+        print(python_script)
+
         if not self.repl:
             self.toggle_repl(None)
         if self.repl:
