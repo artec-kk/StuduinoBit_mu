@@ -30,6 +30,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QGroupBox,
     QLabel,
+    QMessageBox,
 )
 from mu.contrib import microfs
 from mu.logic import HOME_DIRECTORY, WORKSPACE_NAME, save_and_encode
@@ -207,26 +208,30 @@ class StuduinoBitMode(MicroPythonMode):
 
             try:
                 microfs.execute(set_start_index, serial)
-                serial.write(b"\x04")
+                # serial.write(b"\x04")
                 self.reboot(serial)
             except Exception as e:
                 logger.error(e)
                 raise Exception("restart")
 
         # Serial port open
+        time.sleep(0.5)
+
         device_port, serial_number = self.find_device()
         serial = None
-        serial = Serial(device_port, 115200, timeout=3, parity="N")
+        serial = Serial(device_port, 115200, timeout=1, parity="N")
 
         try:
-            # Reboot MicroPython and Prompt
-            self.reboot_and_prompt(serial)
             # save usr*.py local
             reg_num, usr_file = save()
             if reg_num == None and usr_file == None:
                 serial.dtr = True
                 serial.close()
                 return
+            
+            # Reboot MicroPython and Prompt
+            self.reboot_and_prompt(serial)
+            
             # send usr*.py target
             upload(serial, usr_file)
             # Restart
@@ -239,19 +244,15 @@ class StuduinoBitMode(MicroPythonMode):
                 or message == "write_file"
                 or message == "restart"
             ):
-                self.editor.show_status_message(
-                    _("Reboot Error: Unplug and plug in the UsB cable")
-                )
+                QMessageBox.critical(None, _("Reboot Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
             if message == "save":
-                self.editor.show_status_message(
-                    _("Save Error: Restart Mu Editor")
-                )
+                QMessageBox.critical(None, _("Save Error"), _("Restart Mu Editor"), QMessageBox.Yes)
             serial.dtr = True
             serial.close()
             return
 
         self.editor.show_status_message(_("Transfer success"))
-        serial.dtr = True
+        # serial.dtr = True
         serial.close()
 
     def toggle_plotter(self, event):
@@ -281,17 +282,26 @@ class StuduinoBitMode(MicroPythonMode):
         Takes the currently active tab, compiles the Python script therein into
         a hex file and flashes it all onto the connected device.
         """
-
         if not self.repl:
             device_port, serial_number = self.find_device()
             try:
-                serial = Serial(device_port, 115200, timeout=3, parity="N")
+                serial = Serial(device_port, 115200, timeout=1, parity="N")
             except Exception as e:
                 logger.error(e)
                 return
 
             try:
                 self.reboot_and_prompt(serial)
+            except Exception as e:
+                print(e.args)
+                message = e.args[0]
+                if (message == "reboot"):
+                    QMessageBox.critical(None, _("Reboot Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
+                serial.dtr = True
+                serial.close()
+                return
+
+            try:
                 microfs.execute(
                     [
                         "import machine",
@@ -301,9 +311,7 @@ class StuduinoBitMode(MicroPythonMode):
                 )
 
             except IOError as e:
-                self.editor.show_status_message(
-                    _("Reboot Error: Unplug and plug in the UsB cable")
-                )
+                QMessageBox.critical(None, _("Reboot Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
                 logger.error(e)
                 serial.close()
                 return

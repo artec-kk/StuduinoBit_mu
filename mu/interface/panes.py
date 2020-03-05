@@ -341,8 +341,7 @@ class MicroPythonREPLPane(QTextEdit):
         commands.append(b"\r")
         commands.append(b"\x04")
         raw_off = [b"\x02"]
-        command_sequence = raw_on + newline + commands + raw_off
-        logger.info(command_sequence)
+        command_sequence = raw_on + commands + raw_off
         self.execute(command_sequence)
 
     def execute(self, commands):

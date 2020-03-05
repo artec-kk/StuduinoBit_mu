@@ -42,7 +42,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QKeySequence, QStandardItemModel
 from PyQt5.QtSerialPort import QSerialPort
-from mu import __version__
+from mu import (__version__, __sbm_version__)
 from mu.interface.dialogs import (
     ModeSelector,
     AdminDialog,
@@ -304,7 +304,7 @@ class Window(QMainWindow):
     Defines the look and characteristics of the application's main window.
     """
 
-    title = _("Mu {}").format(__version__)
+    title = _("Studuino:bit Mu {} (based on Mu {})").format(__sbm_version__, __version__)
     icon = "icon"
     timer = None
     usb_checker = None
