@@ -144,7 +144,7 @@ class StuduinoBitMode(MicroPythonMode):
 
     def reboot(self, serial):
         serial.write(b"\x03")  # Ctrl+C
-        serial.read_until(b">>>")  # Read until prompt.
+        serial.read_until(b">>> ")  # Read until prompt.
         serial.write(b"\x01")  # Ctrl+A
         serial.write("import machine\r\n".encode("utf-8"))
         time.sleep(0.01)
@@ -161,10 +161,10 @@ class StuduinoBitMode(MicroPythonMode):
             # display prompt
             time.sleep(1)
             serial.write(b"\x03")  # Ctrl+C
-            serial.read_until(b">>>")  # Read until prompt.
+            serial.read_until(b">>> ")  # Read until prompt.
         except Exception as e:
             logger.error(e)
-            raise Exception("reboot")
+            raise Exception("Reboot")
 
     def toggle_flash(self, event):
         def save():
@@ -198,7 +198,7 @@ class StuduinoBitMode(MicroPythonMode):
                 microfs.put(usr_file, "usr/" + filename, serial)
             except Exception as e:
                 logger.error(e)
-                raise Exception("write_file")
+                raise Exception("Write file")
 
         def restart(serial, reg_num):
             set_start_index = [
@@ -212,14 +212,14 @@ class StuduinoBitMode(MicroPythonMode):
                 self.reboot(serial)
             except Exception as e:
                 logger.error(e)
-                raise Exception("restart")
+                raise Exception("Restart")
 
         # Serial port open
         time.sleep(0.5)
 
         device_port, serial_number = self.find_device()
         serial = None
-        serial = Serial(device_port, 115200, timeout=1, parity="N")
+        serial = Serial(device_port, 115200, parity="N")
 
         try:
             # save usr*.py local
@@ -240,11 +240,11 @@ class StuduinoBitMode(MicroPythonMode):
             print(e.args)
             message = e.args[0]
             if (
-                message == "reboot"
-                or message == "write_file"
-                or message == "restart"
+                message == "Reboot"
+                or message == "Write file"
+                or message == "Restart"
             ):
-                QMessageBox.critical(None, _("Reboot Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
+                QMessageBox.critical(None, _(message + " Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
             if message == "save":
                 QMessageBox.critical(None, _("Save Error"), _("Restart Mu Editor"), QMessageBox.Yes)
             serial.dtr = True
@@ -285,7 +285,7 @@ class StuduinoBitMode(MicroPythonMode):
         if not self.repl:
             device_port, serial_number = self.find_device()
             try:
-                serial = Serial(device_port, 115200, timeout=1, parity="N")
+                serial = Serial(device_port, 115200, parity="N")
             except Exception as e:
                 logger.error(e)
                 return
@@ -295,8 +295,8 @@ class StuduinoBitMode(MicroPythonMode):
             except Exception as e:
                 print(e.args)
                 message = e.args[0]
-                if (message == "reboot"):
-                    QMessageBox.critical(None, _("Reboot Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
+                if (message == "Reboot"):
+                    QMessageBox.critical(None, _(message + " Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
                 serial.dtr = True
                 serial.close()
                 return
