@@ -428,15 +428,16 @@ class AdminDialog(QDialog):
         self.envar_widget.setup(settings.get("envars", ""))
         self.tabs.addTab(self.envar_widget, _("Python3 Environment"))
         self.log_widget.log_text_area.setFocus()
+
+        self.esp32_widget = ESP32SettingsWidget()
+        self.esp32_widget.setup()
+        self.microbit_widget = MicrobitSettingsWidget()
+        self.microbit_widget.setup(
+            settings.get("minify", False), settings.get("microbit_runtime", "")
+        )
         if mode == "studuinobit":
-            self.esp32_widget = ESP32SettingsWidget()
-            self.esp32_widget.setup()
             self.tabs.addTab(self.esp32_widget, _("ESP32 Firmware Settings"))
         else:
-            self.microbit_widget = MicrobitSettingsWidget()
-            self.microbit_widget.setup(
-                settings.get("minify", False), settings.get("microbit_runtime", "")
-            )
             self.tabs.addTab(self.microbit_widget, _("BBC micro:bit Settings"))
         self.package_widget = PackagesWidget()
         self.package_widget.setup(packages)
