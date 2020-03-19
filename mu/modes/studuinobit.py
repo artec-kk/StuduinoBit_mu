@@ -32,9 +32,13 @@ from PyQt5.QtWidgets import (
     QLabel,
     QMessageBox,
 )
-from mu.contrib import microfs
+from mu.contrib import sbfs
 from mu.logic import HOME_DIRECTORY, WORKSPACE_NAME, save_and_encode
+
 from serial import Serial
+from PyQt5.QtSerialPort import QSerialPort
+from PyQt5.QtCore import pyqtSignal, QIODevice
+
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +132,7 @@ class StuduinoBitMode(MicroPythonMode):
                 self.set_buttons(files_sb=True, flash_sb=True)
             elif not (self.repl):
                 # Add REPL
-                time.sleep(1)
+                # time.sleep(1)
                 super().toggle_repl(event)
                 if self.repl:
                     self.set_buttons(files_sb=False, flash_sb=False)
@@ -142,26 +146,68 @@ class StuduinoBitMode(MicroPythonMode):
             )
             self.view.show_message(message, information)
 
+    def open_serial_link(self, port):
+        """
+        Creates a new serial link instance.
+        """
+        self.input_buffer = []
+        self.serial = QSerialPort()
+        self.serial.setPortName(port)
+        if self.serial.open(QIODevice.ReadWrite):
+            self.serial.setDataTerminalReady(True)
+            if not self.serial.isDataTerminalReady():
+                # Using pyserial as a 'hack' to open the port and set DTR
+                # as QtSerial does not seem to work on some Windows :(
+                # See issues #281 and #302 for details.
+                self.serial.close()
+                pyser = serial.Serial(port)  # open serial port w/pyserial
+                pyser.dtr = True
+                pyser.close()
+                self.serial.open(QIODevice.ReadWrite)
+            self.serial.setBaudRate(115200)
+        else:
+            msg = _("Cannot connect to device on port {}").format(port)
+            raise IOError(msg)
+
+    def close_serial_link(self):
+        """
+        Close and clean up the currently open serial link.
+        """
+        if self.serial:
+            self.serial.close()
+            self.serial = None
+
+    def read_until(self, token):
+        buff = bytearray()
+        while True:
+            self.serial.waitForReadyRead()
+            data = bytes(self.serial.readAll())  # get all the available bytes.
+            buff.extend(data)
+            if token in buff:
+                break
+
     def reboot(self, serial):
         serial.write(b"\x03")  # Ctrl+C
-        serial.read_until(b">>> ")  # Read until prompt.
+        self.read_until(b">>> ")  # Read until prompt.
         serial.write(b"\x01")  # Ctrl+A
         serial.write("import machine\r\n".encode("utf-8"))
         time.sleep(0.01)
         serial.write("machine.reset()\r\n".encode("utf-8"))
         time.sleep(0.01)
         serial.write(b"\x04")
-        serial.read_until(
-            b"Starting scheduler on PRO CPU"
-        )  # Read until prompt.
+        self.read_until(
+            # b"Starting scheduler on PRO CPU"
+            b"Execute last selected script."
+        )
+        time.sleep(0.1)
 
     def reboot_and_prompt(self, serial):
         try:
             self.reboot(serial)
             # display prompt
-            time.sleep(1)
+            # time.sleep(1)
             serial.write(b"\x03")  # Ctrl+C
-            serial.read_until(b">>> ")  # Read until prompt.
+            self.read_until(b">>> ")  # Read until prompt.
         except Exception as e:
             logger.error(e)
             raise Exception("Reboot")
@@ -195,7 +241,7 @@ class StuduinoBitMode(MicroPythonMode):
         def upload(serial, usr_file):
             try:
                 filename = os.path.basename(usr_file)
-                microfs.put(usr_file, "usr/" + filename, serial)
+                sbfs.put(usr_file, "usr/" + filename, serial)
             except Exception as e:
                 logger.error(e)
                 raise Exception("Write file")
@@ -207,7 +253,7 @@ class StuduinoBitMode(MicroPythonMode):
             ]
 
             try:
-                microfs.execute(set_start_index, serial)
+                sbfs.execute(set_start_index, serial)
                 # serial.write(b"\x04")
                 self.reboot(serial)
             except Exception as e:
@@ -217,16 +263,19 @@ class StuduinoBitMode(MicroPythonMode):
         # Serial port open
         time.sleep(0.5)
 
+        # device_port, serial_number = self.find_device()
+        # serial = None
+        # serial = Serial(device_port, 115200, parity="N")
         device_port, serial_number = self.find_device()
-        serial = None
-        serial = Serial(device_port, 115200, parity="N")
+        self.open_serial_link(device_port)
+        serial = self.serial
 
         try:
             # save usr*.py local
             reg_num, usr_file = save()
             if reg_num == None and usr_file == None:
-                serial.dtr = True
-                serial.close()
+                # serial.dtr = True
+                self.close_serial_link()
                 return
             
             # Reboot MicroPython and Prompt
@@ -247,13 +296,11 @@ class StuduinoBitMode(MicroPythonMode):
                 QMessageBox.critical(None, _(message + " Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
             if message == "save":
                 QMessageBox.critical(None, _("Save Error"), _("Restart Mu Editor"), QMessageBox.Yes)
-            serial.dtr = True
-            serial.close()
+            self.close_serial_link()
             return
 
         self.editor.show_status_message(_("Transfer success"))
-        # serial.dtr = True
-        serial.close()
+        self.close_serial_link()
 
     def toggle_plotter(self, event):
         """
@@ -282,14 +329,16 @@ class StuduinoBitMode(MicroPythonMode):
         Takes the currently active tab, compiles the Python script therein into
         a hex file and flashes it all onto the connected device.
         """
+
         if not self.repl:
-            device_port, serial_number = self.find_device()
             try:
-                serial = Serial(device_port, 115200, parity="N")
+                device_port, serial_number = self.find_device()
+                self.open_serial_link(device_port)
             except Exception as e:
                 logger.error(e)
                 return
 
+            serial = self.serial
             try:
                 self.reboot_and_prompt(serial)
             except Exception as e:
@@ -297,12 +346,11 @@ class StuduinoBitMode(MicroPythonMode):
                 message = e.args[0]
                 if (message == "Reboot"):
                     QMessageBox.critical(None, _(message + " Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
-                serial.dtr = True
-                serial.close()
+                self.close_serial_link()
                 return
 
             try:
-                microfs.execute(
+                sbfs.execute(
                     [
                         "import machine",
                         'machine.nvs_setint("lastSelected", 99)',
@@ -313,10 +361,10 @@ class StuduinoBitMode(MicroPythonMode):
             except IOError as e:
                 QMessageBox.critical(None, _("Reboot Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
                 logger.error(e)
-                serial.close()
+                self.close_serial_link()
                 return
 
-            serial.close()
+            self.close_serial_link()
 
         logger.info("Running script.")
         # Grab the Python script.
@@ -360,7 +408,7 @@ class StuduinoBitMode(MicroPythonMode):
             self.view.show_message(message, information)
         else:
             if self.fs is None:
-                time.sleep(1)
+                # time.sleep(1)
                 self.add_fs()
                 if self.fs:
                     logger.info("Toggle filesystem on.")

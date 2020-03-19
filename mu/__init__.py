@@ -30,4 +30,4 @@ __url__ = "https://github.com/mu-editor/mu"
 __author__ = "Nicholas H.Tollervey"
 __email__ = "ntoll@ntoll.org"
 
-__sbm_version__ = "0.10.0"
+__sbm_version__ = "0.10.1"
