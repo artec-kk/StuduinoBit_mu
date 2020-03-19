@@ -22,7 +22,10 @@ import time
 from mu.modes.base import MicroPythonMode, StuduinoBitFileManager
 from mu.modes.api import STUDUINOBIT_APIS, SHARED_APIS
 from mu.interface.panes import CHARTS
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import (
+    QIODevice,
+    QThread,
+)
 from PyQt5.QtWidgets import (
     QDialog,
     QGridLayout,
@@ -37,8 +40,6 @@ from mu.logic import HOME_DIRECTORY, WORKSPACE_NAME, save_and_encode
 
 from serial import Serial
 from PyQt5.QtSerialPort import QSerialPort
-from PyQt5.QtCore import pyqtSignal, QIODevice
-
 
 logger = logging.getLogger(__name__)
 
@@ -177,10 +178,12 @@ class StuduinoBitMode(MicroPythonMode):
             self.serial.close()
             self.serial = None
 
-    def read_until(self, token):
+    def read_until(self, token, timeout=5000):
         buff = bytearray()
         while True:
-            self.serial.waitForReadyRead()
+            if not (self.serial.waitForReadyRead(timeout)):
+                raise TimeoutError(_('Transfer synchronization processing failed'))
+
             data = bytes(self.serial.readAll())  # get all the available bytes.
             buff.extend(data)
             if token in buff:
@@ -199,103 +202,88 @@ class StuduinoBitMode(MicroPythonMode):
             # b"Starting scheduler on PRO CPU"
             b"Execute last selected script."
         )
-        time.sleep(0.1)
 
     def reboot_and_prompt(self, serial):
-        try:
-            self.reboot(serial)
-            # display prompt
-            # time.sleep(1)
-            serial.write(b"\x03")  # Ctrl+C
-            self.read_until(b">>> ")  # Read until prompt.
-        except Exception as e:
-            logger.error(e)
-            raise Exception("Reboot")
+        self.reboot(serial)
+        # display prompt
+        serial.write(b"\x03")  # Ctrl+C
+        self.read_until(b">>> ")  # Read until prompt.
 
     def toggle_flash(self, event):
         def save():
-            try:
-                # Display dialog
-                regist_box = RegisterWindow(self.view)
-                result = regist_box.exec()
-                if result == 0:
-                    return None, None
+            # Display dialog
+            regist_box = RegisterWindow(self.view)
+            result = regist_box.exec()
+            if result == 0:
+                return None, None
 
-                # Save file
-                reg_info = regist_box.get_register_info()
-                reg_num = reg_info[0]
+            # Save file
+            reg_info = regist_box.get_register_info()
+            reg_num = reg_info[0]
 
-                tab = self.view.current_tab
-                usr_file = os.path.join(
-                    HOME_DIRECTORY,
-                    WORKSPACE_NAME,
-                    "studuinobit",
-                    "usr" + reg_num + ".py",
-                )
-                save_and_encode(tab.text(), usr_file, tab.newline)
-                return reg_num, usr_file
-            except Exception as e:
-                logger.error(e)
-                raise Exception("save")
+            tab = self.view.current_tab
+            usr_file = os.path.join(
+                HOME_DIRECTORY,
+                WORKSPACE_NAME,
+                "studuinobit",
+                "usr" + reg_num + ".py",
+            )
+            save_and_encode(tab.text(), usr_file, tab.newline)
+            return reg_num, usr_file
 
         def upload(serial, usr_file):
-            try:
-                filename = os.path.basename(usr_file)
-                sbfs.put(usr_file, "usr/" + filename, serial)
-            except Exception as e:
-                logger.error(e)
-                raise Exception("Write file")
+            filename = os.path.basename(usr_file)
+            sbfs.put(usr_file, "usr/" + filename, serial)
 
         def restart(serial, reg_num):
             set_start_index = [
                 "import machine",
                 'machine.nvs_setint("lastSelected", {0})'.format(reg_num),
             ]
-
-            try:
-                sbfs.execute(set_start_index, serial)
-                # serial.write(b"\x04")
-                self.reboot(serial)
-            except Exception as e:
-                logger.error(e)
-                raise Exception("Restart")
+            sbfs.execute(set_start_index, serial)
+            self.reboot(serial)
 
         # Serial port open
-        time.sleep(0.5)
+        try:
+            device_port, serial_number = self.find_device()
+            self.open_serial_link(device_port)
+        except Exception as e:
+            QMessageBox.critical(None, _("Serial Open Error"), _("{0}".format(e)), QMessageBox.Yes)
+            return
 
-        # device_port, serial_number = self.find_device()
-        # serial = None
-        # serial = Serial(device_port, 115200, parity="N")
-        device_port, serial_number = self.find_device()
-        self.open_serial_link(device_port)
         serial = self.serial
 
+        # save usr*.py local
         try:
-            # save usr*.py local
             reg_num, usr_file = save()
             if reg_num == None and usr_file == None:
-                # serial.dtr = True
                 self.close_serial_link()
                 return
-            
+        except Exception as e:
+            message = e.args[0]
+            QMessageBox.critical(None, _("Upload Error"), _(message), QMessageBox.Yes)
+            self.close_serial_link()
+            return
+
+        # send usr*.py
+        try:
             # Reboot MicroPython and Prompt
             self.reboot_and_prompt(serial)
-            
             # send usr*.py target
             upload(serial, usr_file)
+        except Exception as e:
+            message = e.args[0]
+            QMessageBox.critical(None, _("Upload Error"), _(message), QMessageBox.Yes)
+            self.close_serial_link()
+            return
+
+        # restart
+        try:
             # Restart
             restart(serial, reg_num)
         except Exception as e:
-            print(e.args)
             message = e.args[0]
-            if (
-                message == "Reboot"
-                or message == "Write file"
-                or message == "Restart"
-            ):
-                QMessageBox.critical(None, _(message + " Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
-            if message == "save":
-                QMessageBox.critical(None, _("Save Error"), _("Restart Mu Editor"), QMessageBox.Yes)
+            QMessageBox.critical(None, _("Restart Error"), _(message), QMessageBox.Yes)
             self.close_serial_link()
             return
 
@@ -335,32 +323,28 @@ class StuduinoBitMode(MicroPythonMode):
                 device_port, serial_number = self.find_device()
                 self.open_serial_link(device_port)
             except Exception as e:
-                logger.error(e)
+                QMessageBox.critical(None, _("Serial Open Error"), _("{0}".format(e)), QMessageBox.Yes)
                 return
 
             serial = self.serial
             try:
                 self.reboot_and_prompt(serial)
             except Exception as e:
-                print(e.args)
                 message = e.args[0]
-                if (message == "Reboot"):
-                    QMessageBox.critical(None, _(message + " Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
+                QMessageBox.critical(None, _("Reboot Error"), _(message), QMessageBox.Yes)
                 self.close_serial_link()
                 return
 
-            try:
-                sbfs.execute(
-                    [
-                        "import machine",
-                        'machine.nvs_setint("lastSelected", 99)',
-                    ],
-                    serial,
-                )
+            command = [
+                "import machine",
+                'machine.nvs_setint("lastSelected", 99)',
+            ]
 
+            try:
+                sbfs.execute(command, serial,)
             except IOError as e:
-                QMessageBox.critical(None, _("Reboot Error"), _("Reconnect the USB cable"), QMessageBox.Yes)
-                logger.error(e)
+                message = e.args[0]
+                QMessageBox.critical(None, _("Program No.99 Error"), _(message), QMessageBox.Yes)
                 self.close_serial_link()
                 return
 

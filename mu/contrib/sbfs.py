@@ -61,10 +61,11 @@ def find_microbit():
     return (None, None)
 '''
 
-def read_until(serial, token):
+def read_until(serial, token, timeout=5000):
     buff = bytearray()
     while True:
-        serial.waitForReadyRead()
+        if not (serial.waitForReadyRead(timeout)):
+            raise TimeoutError(_('Transfer synchronization processing failed'))
         data = bytes(serial.readAll())  # get all the available bytes.
         buff.extend(data)
         if token in buff:
