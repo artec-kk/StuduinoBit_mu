@@ -25,6 +25,7 @@ from mu.interface.panes import CHARTS
 from PyQt5.QtCore import (
     QIODevice,
     QThread,
+    QTimer,
 )
 from PyQt5.QtWidgets import (
     QDialog,
@@ -65,6 +66,8 @@ class StuduinoBitMode(MicroPythonMode):
 
     def __init__(self, editor, view):
         super().__init__(editor, view)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.is_connecting)
 
     def actions(self):
         """
@@ -131,12 +134,20 @@ class StuduinoBitMode(MicroPythonMode):
                 # Remove REPL
                 super().toggle_repl(event)
                 self.set_buttons(files_sb=True, flash_sb=True)
+                if self.timer.isActive():
+                    self.timer.stop()
+
             elif not (self.repl):
                 # Add REPL
                 # time.sleep(1)
                 super().toggle_repl(event)
                 if self.repl:
                     self.set_buttons(files_sb=False, flash_sb=False)
+
+                    #アップデート時間設定
+                    if not self.timer.isActive():
+                        self.timer.start(1000)    #100msごとにupdateを呼び出し
+
         else:
             message = _("REPL and file system cannot work at the same time.")
             information = _(
@@ -481,6 +492,24 @@ class StuduinoBitMode(MicroPythonMode):
             except Exception as ex:
                 logger.error(ex)
         else:
+            message = _("Could not find an attached device.")
+            information = _(
+                "Please make sure the device is plugged into this"
+                " computer.\n\nIt must have a version of"
+                " MicroPython (or CircuitPython) flashed onto it"
+                " before the REPL will work.\n\nFinally, press the"
+                " device's reset button and wait a few seconds"
+                " before trying again."
+            )
+            self.view.show_message(message, information)
+
+    def is_connecting(self):
+        device_port, serial_number = self.find_device()
+        if device_port:
+            pass
+        else:
+            self.timer.stop()
+            self.toggle_repl(None)
             message = _("Could not find an attached device.")
             information = _(
                 "Please make sure the device is plugged into this"
