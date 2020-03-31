@@ -323,43 +323,49 @@ class StuduinoBitMode(MicroPythonMode):
             )
             self.view.show_message(message, information)
 
+    def initialize(self):
+        # Get serial port
+        try:
+            device_port, serial_number = self.find_device()
+            self.open_serial_link(device_port)
+        except Exception as e:
+            QMessageBox.critical(None, _("Serial Open Error"), _("{0}".format(e)), QMessageBox.Yes)
+            return
+
+        serial = self.serial
+
+        # Reboot and wait prompt
+        try:
+            self.reboot_and_prompt(serial)
+        except Exception as e:
+            message = e.args[0]
+            QMessageBox.critical(None, _("Reboot Error"), _(message), QMessageBox.Yes)
+            self.close_serial_link()
+            return
+
+        # Set start to send command
+        command = [
+            "import machine",
+            'machine.nvs_setint("lastSelected", 99)',
+        ]
+        try:
+            sbfs.execute(command, serial,)
+        except IOError as e:
+            message = e.args[0]
+            QMessageBox.critical(None, _("Program No.99 Error"), _(message), QMessageBox.Yes)
+            self.close_serial_link()
+            return
+
+        self.close_serial_link()
+
     def run(self):
         """
         Takes the currently active tab, compiles the Python script therein into
         a hex file and flashes it all onto the connected device.
         """
-
         if not self.repl:
-            try:
-                device_port, serial_number = self.find_device()
-                self.open_serial_link(device_port)
-            except Exception as e:
-                QMessageBox.critical(None, _("Serial Open Error"), _("{0}".format(e)), QMessageBox.Yes)
-                return
-
-            serial = self.serial
-            try:
-                self.reboot_and_prompt(serial)
-            except Exception as e:
-                message = e.args[0]
-                QMessageBox.critical(None, _("Reboot Error"), _(message), QMessageBox.Yes)
-                self.close_serial_link()
-                return
-
-            command = [
-                "import machine",
-                'machine.nvs_setint("lastSelected", 99)',
-            ]
-
-            try:
-                sbfs.execute(command, serial,)
-            except IOError as e:
-                message = e.args[0]
-                QMessageBox.critical(None, _("Program No.99 Error"), _(message), QMessageBox.Yes)
-                self.close_serial_link()
-                return
-
-            self.close_serial_link()
+            # Initialize Studuino:bit
+            self.initialize()
 
         logger.info("Running script.")
         # Grab the Python script.
