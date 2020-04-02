@@ -1284,10 +1284,10 @@ class Editor:
                 target = self.modes[self.mode]
                 if target.repl:
                     target.toggle_repl(None)
-                    target.initialize()
                 if target.plotter:
                     target.toggle_plotter(None)
-                    target.initialize()
+                if target.fs:
+                    target.toggle_files(None)
 
             new_settings = self._view.show_admin(
                 logfile.read(), settings, "\n".join(packages), self.modes[self.mode]

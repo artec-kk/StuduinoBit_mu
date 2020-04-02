@@ -28,6 +28,7 @@ from PyQt5.QtSerialPort import QSerialPort
 from PyQt5.QtWidgets import (
     QHBoxLayout,
     QVBoxLayout,
+    QGridLayout,
     QListWidget,
     QLabel,
     QListWidgetItem,
@@ -236,7 +237,7 @@ class PackagesWidget(QWidget):
         widget_layout.addWidget(self.text_area)
 
 
-class ESP32SettingsWidget(QWidget):
+class SBFirmwareFlasherWidget(QWidget):
     """
     Used for configuring how to interact with the ESP32:
 
@@ -245,142 +246,135 @@ class ESP32SettingsWidget(QWidget):
 
     def setup(self):
         widget_layout = QVBoxLayout()
-
-        # Checkbox for erase, label for explain
-        form_set = QHBoxLayout()
-        # self.erase = QCheckBox(_("Erase the entire flash before updating?"))
-        # self.erase.setChecked(False)
-        # form_set.addWidget(self.erase)
-        widget_layout.addLayout(form_set)
-
-        # Label explained the forms following
         self.setLayout(widget_layout)
-        label = QLabel(
-            _(
-                "Override the built-in MicroPython runtime with "
-                "the following file:"
-            )
-        )
-        label.setWordWrap(True)
-        widget_layout.addWidget(label)
 
-        # Edit box for write command, Button for select firmware, Button for update
-        form_set = QHBoxLayout()
+        # Check whether esptool is installed, show error if not
+        esptool_installed = os.path.exists(MODULE_DIR + "/esptool.py")
+        if not esptool_installed:
+            error_msg = _(
+                "The ESP Firmware flasher requires the esptool' "
+                "package to be installed.\n"
+                "Select \"Third Party Packages\", add 'esptool' "
+                "and click 'OK'"
+            )
+            error_label = QLabel(error_msg)
+            widget_layout.addWidget(error_label)
+            return
+
+        # Instructions
+        grp_instructions = QGroupBox(
+            _("How to flash MicroPython to your device")
+        )
+        grp_instructions_vbox = QVBoxLayout()
+        grp_instructions.setLayout(grp_instructions_vbox)
+        instructions = _(
+            "&nbsp;1. Download firmware from the "
+            '<a href="https://www.artec-kk.co.jp/artecrobo2/ja/software/python.php">'
+            "https://www.artec-kk.co.jp/artecrobo2/ja/software/python.php</a><br/>"
+            "&nbsp;2. Connect your device<br/>"
+            "&nbsp;3. Load the .bin file below using the 'Browse' button<br/>"
+            "&nbsp;4. Press 'Write firmware'"
+        )
+        label = QLabel(instructions)
+        label.setTextFormat(Qt.RichText)
+        label.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        label.setOpenExternalLinks(True)
+        label.setWordWrap(True)
+        grp_instructions_vbox.addWidget(label)
+        widget_layout.addWidget(grp_instructions)
+
+        # Device type, firmware path, flash button
+        firmware_label = QLabel("Firmware (.bin):")
         self.txtFolder = QLineEdit()
-        self.btnFolder = QPushButton(_("..."))
-        self.btnExec = QPushButton(_("Update"))
+        self.btnFolder = QPushButton(_("Browse"))
+        self.btnExec = QPushButton(_("Write firmware"))
         self.btnExec.setEnabled(False)
-        form_set.addWidget(self.txtFolder)
-        form_set.addWidget(self.btnFolder)
-        form_set.addWidget(self.btnExec)
+        form_set = QGridLayout()
+        form_set.addWidget(firmware_label, 0, 0)
+        form_set.addWidget(self.txtFolder, 0, 1)
+        form_set.addWidget(self.btnFolder, 0, 2)
+        form_set.addWidget(self.btnExec, 0, 3)
         widget_layout.addLayout(form_set)
 
-        # Text area for information
-        form_set = QHBoxLayout()
+        # Output area
         self.log_text_area = QPlainTextEdit()
         self.log_text_area.setReadOnly(True)
-
-        self.log_text_area.appendPlainText('''
-You can check the built-in MicroPython information by following command in REPL,
->>> import sys
->>> sys.implementation''')
-        self.log_text_area.appendPlainText('''
-If not install esptool yet, select "Third Party Packages" Tab and add esptool.''')
+        form_set = QHBoxLayout()
         form_set.addWidget(self.log_text_area)
         widget_layout.addLayout(form_set)
-
         widget_layout.addStretch()
 
-        # Set event
+        # Connect events
+        self.txtFolder.textChanged.connect(self.firmware_path_changed)
         self.btnFolder.clicked.connect(self.show_folder_dialog)
         self.btnExec.clicked.connect(self.update_firmware)
-        self.btnExec.installEventFilter(self)
-
-        self.filename = ''
 
     def show_folder_dialog(self):
-        #default_command = 'esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 460800 write_flash -z 0x1000 '
-        default_command=''
-        self.command = ''
         # open dialog and set to foldername
-        filename = QFileDialog.getOpenFileName(self,
-                                                'open file',
-                                                os.path.expanduser('.'),
-                                                "Firmware (*.bin)")
-        print(filename)
+        filename = QFileDialog.getOpenFileName(
+            self,
+            "Select MicroPython firmware (.bin)",
+            os.path.expanduser("."),
+            "Firmware (*.bin)",
+        )
         if filename:
-            filename = filename[0].replace('/', os.sep)
-            self.txtFolder.setText(default_command + filename)
+            filename = filename[0].replace("/", os.sep)
+            self.txtFolder.setText(filename)
 
     def update_firmware(self):
-        self.err = 0
-        self.commands = []
-        self.log_text_area.appendPlainText('Updating...\n')
+        esptool = MODULE_DIR + "/esptool.py"
+        write_command = (
+            'python "{}" --baud 1500000 '
+            'write_flash 0x20000 "{}"'
+        ).format(esptool, self.txtFolder.text())
 
-        esptool = MODULE_DIR + '/esptool.py'
-        '''
-        if self.erase.isChecked():
-            command = [esptool, 'erase_flash']
-            # self.process.start('python', command)
-            self.commands.append(command)
-        '''
-
-        command = ['--baud', '1500000', 'write_flash', '0x20000', self.txtFolder.text()]
-        command.insert(0, esptool)
-        self.commands.append(command)
+        self.commands = [write_command]
         self.run_esptool()
 
     def run_esptool(self):
-        command = self.commands.pop(0)
-        print(command)
         self.process = QProcess(self)
         self.process.setProcessChannelMode(QProcess.MergedChannels)
-        self.process.readyRead.connect(self.read_process)
-        self.process.finished.connect(self.finished)
+        self.process.readyReadStandardError.connect(self.read_process)
+        self.process.readyReadStandardOutput.connect(self.read_process)
+        self.process.finished.connect(self.esptool_finished)
+        self.process.errorOccurred.connect(self.esptool_error)
 
-        self.process.start('python', command)
+        command = self.commands.pop(0)
+        self.log_text_area.appendPlainText(command + "\n")
+        self.process.start(command)
 
-    def finished(self):
+    def esptool_error(self, error_num):
+        self.log_text_area.appendPlainText(
+            "Error occured: Error {}\n".format(error_num)
+        )
+        self.process = None
+
+    def esptool_finished(self, exitCode, exitStatus):
         """
-        Called when the subprocess that uses pip to install a package is
-        finished.
+        Called when the subprocess that executes 'esptool.py is finished.
         """
+        # Exit if a command fails
+        if exitCode != 0 or exitStatus == QProcess.CrashExit:
+            self.log_text_area.appendPlainText("Error on flashing. Aborting.")
+            return
         if self.commands:
             self.process = None
             self.run_esptool()
-        else:
-            if (self.err == 1):
-                self.log_text_area.appendPlainText('''
-Select Third Party Packages Tab and add esptool.''')
-            else:
-                self.log_text_area.appendPlainText('''
-You can update library from PiPy by following command in REPL,
->>> import network
->>> sta = network.WLAN(network.STA_IF)
->>> sta.active(True)
->>> sta.connect("SSID", "PASSWORD")
->>> import upip
->>> upip.install("micropython-artecrobo2.0")
->>> upip.install("micropython-studuinobit-iot")''')
 
     def read_process(self):
         """
         Read data from the child process and append it to the text area. Try
         to keep reading until there's no more data from the process.
         """
-        msg = ''
+        msg = ""
         data = self.process.readAll()
         if data:
             try:
                 msg = data.data().decode("utf-8")
                 self.append_data(msg)
-            except UnicodeDecodeError as e:
-                # print(e)
+            except UnicodeDecodeError:
                 pass
             QTimer.singleShot(2, self.read_process)
-
-        if "[Errno 2] No such file or directory" in msg:
-            self.err = 1
 
     def append_data(self, msg):
         """
@@ -392,12 +386,7 @@ You can update library from PiPy by following command in REPL,
         cursor.movePosition(QTextCursor.End)
         self.log_text_area.setTextCursor(cursor)
 
-    def eventFilter(self, obj, event):
-        if obj == self.btnExec and event.type() == QtCore.QEvent.HoverEnter:
-            self.onHovered()
-        return super(ESP32SettingsWidget, self).eventFilter(obj, event)
-
-    def onHovered(self):
+    def firmware_path_changed(self):
         if len(self.txtFolder.text()) > 0:
             self.btnExec.setEnabled(True)
         else:
@@ -409,6 +398,16 @@ class ESP32PackagesWidget(QWidget):
     Used for editing and displaying 3rd party packages installed via pip to be
     used with Python 3 mode.
     """
+
+    message = _("Could not find an attached device.")
+    information = _(
+        "Please make sure the device is plugged into this"
+        " computer.\n\nIt must have a version of"
+        " MicroPython (or CircuitPython) flashed onto it"
+        " before the REPL will work.\n\nFinally, press the"
+        " device's reset button and wait a few seconds"
+        " before trying again."
+    )
 
     def setup(self, target):
         widget_layout = QVBoxLayout()
@@ -422,11 +421,11 @@ class ESP32PackagesWidget(QWidget):
         grp_instructions.setLayout(grp_instructions_vbox)
         instructions = _(
             "&nbsp;1. Connect your device<br/>"
-            "&nbsp;2. Press 'Wi-Fi scan'<br/>"
+            "&nbsp;2. Press 'Wi-Fi Scan' in Wi-Fi Connection area<br/>"
             "&nbsp;4. Select SSID from the combo box<br/>"
             "&nbsp;5. Write password in the text area<br/>"
             "&nbsp;6. Press 'Connect'<br/>"
-            "&nbsp;7. Write libraries you want install in the text area<br/>"
+            "&nbsp;7. Write libraries you want install in Update/Install libraries area<br/>"
             "&nbsp;8. Press 'Start'<br/>"
         )
         label = QLabel(instructions)
@@ -475,7 +474,11 @@ class ESP32PackagesWidget(QWidget):
 
 
         # Install area
-        self.text_area = QPlainTextEdit()
+        libraries = _(
+            "micropython-artecrobo2.0\n"
+            "micropython-studuinobit-iot\n"
+        )
+        self.text_area = QPlainTextEdit(libraries)
         self.text_area.setLineWrapMode(QPlainTextEdit.NoWrap)
         self.button_inst = QPushButton(_("Start"))
         self.button_inst.setEnabled(False)
@@ -538,17 +541,22 @@ class ESP32PackagesWidget(QWidget):
         # Clear
         self.list_ssid.clear()
 
-        # Initialize REPL status
-        # if self.target.repl:
-        #     self.target.toggle_repl(None)
-        # self.target.initialize()
+        try:
+            # Initialize Studuino:bit
+            self.target.initialize()
+        except Exception as e:
+            if e.args[0] == _('Open Serial Error'):
+                self.target.view.show_message(self.message, self.information)
+            else:
+                self.target.view.show_message(e.args[0], _("Please connect the USB cable again."))
+            return
 
         # Serial port open
         try:
             device_port, serial_number = self.target.find_device()
             self.open_serial_link(device_port)
         except Exception as e:
-            QMessageBox.critical(None, _("Serial Open Error"), _("{0}".format(e)), QMessageBox.Yes)
+            self.target.view.show_message(self.message, self.information)
             return
 
         # Get AP Informations
@@ -561,7 +569,8 @@ class ESP32PackagesWidget(QWidget):
         try:
             out, err = sbfs.send_cmd(command, self.serial)
         except IOError as e:
-            QMessageBox.critical(None, _("Scan Error"), _("{0}".format(e)), QMessageBox.Yes)
+            logger.exception("Error in scan: %s", e)
+            self.target.view.show_message(_("Scan Error"), _("Please connect the USB cable again."))
             self.close_serial_link()
             return
 
@@ -611,6 +620,7 @@ class ESP32PackagesWidget(QWidget):
             self.button_scan.setEnabled(False)
 
             self.groupbox_install.setEnabled(True)
+            self.library_info_changed()
         else:
             # Get AP Informations
             connect_command = "sta.connect('" + self.list_ssid.currentText() + "', '" + self.line_pwd.text() + "')"
@@ -640,6 +650,10 @@ class ESP32PackagesWidget(QWidget):
 
         libs = self.text_area.toPlainText()
         print(libs)
+        libs = libs.split('\n')
+        print(libs)
+        libs = [l for l in libs if l != '']
+        print(libs)
 
         try:
             device_port, serial_number = self.target.find_device()
@@ -650,21 +664,35 @@ class ESP32PackagesWidget(QWidget):
             return
 
         # Get AP Informations
-        pip_command = "upip.install('" + libs + "')"
-        command = [
-            'import upip',
-            pip_command,
-        ]
-        try:
-            out, err = sbfs.send_cmd(command, self.serial)
-        except IOError as e:
-            QMessageBox.critical(None, _("WiFi Connect Error"), _("{0}".format(e)), QMessageBox.Yes)
-            self.close_serial_link()
-            self.button_conn.setEnabled(True)
-            return
- 
-        print(out)
-        print(err)
+        result = {}
+        for lib in libs:
+            pip_command = "upip.install('" + lib + "')"
+            command = [
+                'import upip',
+                pip_command,
+            ]
+            try:
+                out, err = sbfs.send_cmd(command, self.serial)
+            except IOError as e:
+                QMessageBox.critical(None, _("WiFi Connect Error"), _("{0}".format(e)), QMessageBox.Yes)
+                self.close_serial_link()
+                self.button_conn.setEnabled(True)
+                return
+
+            if b'Error' in out:
+                result.update({lib: 'NG\n' + str(out) + '\n'})
+            else:
+                result.update({lib: 'OK\n' + str(out) + '\n'})
+
+        print(result)
+
+        information = ''
+        for key in result.keys():
+            information += '[' + key +']\n' + result[key] + '\n'
+        print(information)
+
+        self.target.view.show_message('UPIP Result', information)
+
         self.close_serial_link()
 
     def wifi_info_changed(self):
@@ -711,7 +739,7 @@ class AdminDialog(QDialog):
         self.tabs.addTab(self.envar_widget, _("Python3 Environment"))
         self.log_widget.log_text_area.setFocus()
 
-        self.esp32_widget = ESP32SettingsWidget()
+        self.esp32_widget = SBFirmwareFlasherWidget()
         self.esp32_widget.setup()
         self.microbit_widget = MicrobitSettingsWidget()
         self.microbit_widget.setup(
@@ -720,11 +748,11 @@ class AdminDialog(QDialog):
 
         print(mode.name)
         if mode.name == "Artec Studuino:Bit MicroPython":
-            self.tabs.addTab(self.esp32_widget, _("ESP32 Firmware Settings"))
+            self.tabs.addTab(self.esp32_widget, _("Firmware flasher"))
 
             self.esp32_package_widget = ESP32PackagesWidget()
             self.esp32_package_widget.setup(mode)
-            self.tabs.addTab(self.esp32_package_widget, _("ESP32 Third Party Packages"))
+            self.tabs.addTab(self.esp32_package_widget, _("MicroPython Third Party Packages"))
         else:
             self.tabs.addTab(self.microbit_widget, _("BBC micro:bit Settings"))
         self.package_widget = PackagesWidget()
