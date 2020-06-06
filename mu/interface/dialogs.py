@@ -43,7 +43,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QGroupBox,
     QComboBox,
-    QMessageBox
+    QMessageBox,
 )
 from PyQt5.QtGui import QTextCursor
 from mu.resources import load_icon
@@ -252,7 +252,7 @@ class SBFirmwareFlasherWidget(QWidget):
         esptool_installed = os.path.exists(MODULE_DIR + "/esptool.py")
         if not esptool_installed:
             error_msg = _(
-                "The ESP Firmware flasher requires the esptool' "
+                "The ESP Firmware flasher requires the esptool "
                 "package to be installed.\n"
                 "Select \"Third Party Packages\", add 'esptool' "
                 "and click 'OK'"
@@ -268,9 +268,9 @@ class SBFirmwareFlasherWidget(QWidget):
         grp_instructions_vbox = QVBoxLayout()
         grp_instructions.setLayout(grp_instructions_vbox)
         instructions = _(
-            "&nbsp;1. Download firmware from the "
-            '<a href="https://www.artec-kk.co.jp/artecrobo2/ja/software/python.php">'
-            "https://www.artec-kk.co.jp/artecrobo2/ja/software/python.php</a><br/>"
+            "&nbsp;1. Download firmware from the <br/>"
+            '&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://www.artec-kk.co.jp/artecrobo2/data/mp/micropython.bin">'
+            "https://www.artec-kk.co.jp/artecrobo2/data/mp/micropython.bin</a><br/>"
             "&nbsp;2. Connect your device<br/>"
             "&nbsp;3. Load the .bin file below using the 'Browse' button<br/>"
             "&nbsp;4. Press 'Write firmware'"
@@ -284,7 +284,7 @@ class SBFirmwareFlasherWidget(QWidget):
         widget_layout.addWidget(grp_instructions)
 
         # Device type, firmware path, flash button
-        firmware_label = QLabel("Firmware (.bin):")
+        firmware_label = QLabel(_("Firmware (.bin):"))
         self.txtFolder = QLineEdit()
         self.btnFolder = QPushButton(_("Browse"))
         self.btnExec = QPushButton(_("Write firmware"))
@@ -324,8 +324,7 @@ class SBFirmwareFlasherWidget(QWidget):
     def update_firmware(self):
         esptool = MODULE_DIR + "/esptool.py"
         write_command = (
-            'python "{}" --baud 1500000 '
-            'write_flash 0x20000 "{}"'
+            'python "{}" --baud 1500000 ' 'write_flash 0x20000 "{}"'
         ).format(esptool, self.txtFolder.text())
 
         self.commands = [write_command]
@@ -468,15 +467,13 @@ class ESP32PackagesWidget(QWidget):
         wifi_layout.addLayout(conf_layout)
         wifi_layout.addWidget(self.button_conn)
 
-        groupbox = QGroupBox("WiFi Connection")
+        groupbox = QGroupBox(_("Wi-Fi Connection"))
         groupbox.setLayout(wifi_layout)
         widget_layout.addWidget(groupbox)
 
-
         # Install area
-        libraries = _(
-            "micropython-artecrobo2.0\n"
-            "micropython-studuinobit-iot\n"
+        libraries = (
+            "micropython-artecrobo2.0\n" "micropython-studuinobit-iot\n"
         )
         self.text_area = QPlainTextEdit(libraries)
         self.text_area.setLineWrapMode(QPlainTextEdit.NoWrap)
@@ -487,7 +484,7 @@ class ESP32PackagesWidget(QWidget):
         inst_layout.addWidget(self.text_area)
         inst_layout.addWidget(self.button_inst)
 
-        self.groupbox_install = QGroupBox("Update/Install libraries")
+        self.groupbox_install = QGroupBox(_("Update/Install libraries"))
         self.groupbox_install.setLayout(inst_layout)
         self.groupbox_install.setEnabled(False)
         widget_layout.addWidget(self.groupbox_install)
@@ -545,10 +542,12 @@ class ESP32PackagesWidget(QWidget):
             # Initialize Studuino:bit
             self.target.initialize()
         except Exception as e:
-            if e.args[0] == _('Open Serial Error'):
+            if e.args[0] == _("Open Serial Error"):
                 self.target.view.show_message(self.message, self.information)
             else:
-                self.target.view.show_message(e.args[0], _("Please connect the USB cable again."))
+                self.target.view.show_message(
+                    e.args[0], _("Please connect the USB cable again.")
+                )
             return
 
         # Serial port open
@@ -564,22 +563,23 @@ class ESP32PackagesWidget(QWidget):
             "import network",
             "sta = network.WLAN(network.STA_IF)",
             "sta.active(True)",
-            "print(sta.scan())"
+            "print(sta.scan())",
         ]
         try:
             out, err = sbfs.send_cmd(command, self.serial)
         except IOError as e:
             logger.exception("Error in scan: %s", e)
-            self.target.view.show_message(_("Scan Error"), _("Please connect the USB cable again."))
+            self.target.view.show_message(
+                _("Scan Error"), _("Please connect the USB cable again.")
+            )
             self.close_serial_link()
             return
 
         # Display SSIDs
         aps = re.findall(r"\((.*?)\)", str(out))
-        print(aps)
+        logger.info(aps)
         for ap in aps:
-            info = ap.split(',')
-            print(info[0])
+            info = ap.split(",")
             ssid = re.sub(r"['\\]", "", info[0][1:])
             self.list_ssid.addItem(ssid)
 
@@ -592,22 +592,38 @@ class ESP32PackagesWidget(QWidget):
             device_port, serial_number = self.target.find_device()
             self.open_serial_link(device_port)
         except Exception as e:
-            QMessageBox.critical(None, _("Serial Open Error"), _("{0}".format(e)), QMessageBox.Yes)
+            QMessageBox.critical(
+                None,
+                _("Open Serial Error"),
+                _("{0}".format(e)),
+                QMessageBox.Yes,
+            )
             self.button_conn.setEnabled(True)
             return
 
         if connect:
             # Get AP Informations
-            connect_command = "sta.connect('" + self.list_ssid.currentText() + "', '" + self.line_pwd.text() + "')"
+            connect_command = (
+                "sta.connect('"
+                + self.list_ssid.currentText()
+                + "', '"
+                + self.line_pwd.text()
+                + "')"
+            )
             command = [
                 connect_command,
                 "while not sta.isconnected():\n pass",
-                "print(sta.ifconfig())"
+                "print(sta.ifconfig())",
             ]
             try:
                 out, err = sbfs.send_cmd(command, self.serial)
             except IOError as e:
-                QMessageBox.critical(None, _("WiFi Connect Error"), _("{0}".format(e)), QMessageBox.Yes)
+                QMessageBox.critical(
+                    None,
+                    _("Wi-Fi Connect Error"),
+                    _("{0}".format(e)),
+                    QMessageBox.Yes,
+                )
                 self.close_serial_link()
                 self.button_conn.setEnabled(True)
                 return
@@ -623,16 +639,27 @@ class ESP32PackagesWidget(QWidget):
             self.library_info_changed()
         else:
             # Get AP Informations
-            connect_command = "sta.connect('" + self.list_ssid.currentText() + "', '" + self.line_pwd.text() + "')"
+            connect_command = (
+                "sta.connect('"
+                + self.list_ssid.currentText()
+                + "', '"
+                + self.line_pwd.text()
+                + "')"
+            )
             command = [
                 "sta.disconnect()",
                 "while sta.isconnected():\n pass",
-                "print(sta.ifconfig())"
+                "print(sta.ifconfig())",
             ]
             try:
                 out, err = sbfs.send_cmd(command, self.serial)
             except IOError as e:
-                QMessageBox.critical(None, _("WiFi Connect Error"), _("{0}".format(e)), QMessageBox.Yes)
+                QMessageBox.critical(
+                    None,
+                    _("Wi-Fi Connect Error"),
+                    _("{0}".format(e)),
+                    QMessageBox.Yes,
+                )
                 self.close_serial_link()
                 self.button_conn.setEnabled(True)
                 return
@@ -643,23 +670,25 @@ class ESP32PackagesWidget(QWidget):
             self.button_scan.setEnabled(True)
             self.groupbox_install.setEnabled(False)
 
-
         self.close_serial_link()
 
     def install(self):
 
         libs = self.text_area.toPlainText()
-        print(libs)
-        libs = libs.split('\n')
-        print(libs)
-        libs = [l for l in libs if l != '']
-        print(libs)
+        libs = libs.split("\n")
+        libs = [l for l in libs if l != ""]
+        logger.info(libs)
 
         try:
             device_port, serial_number = self.target.find_device()
             self.open_serial_link(device_port)
         except Exception as e:
-            QMessageBox.critical(None, _("Serial Open Error"), _("{0}".format(e)), QMessageBox.Yes)
+            QMessageBox.critical(
+                None,
+                _("Open Serial Error"),
+                _("{0}".format(e)),
+                QMessageBox.Yes,
+            )
             self.button_conn.setEnabled(True)
             return
 
@@ -667,42 +696,43 @@ class ESP32PackagesWidget(QWidget):
         result = {}
         for lib in libs:
             pip_command = "upip.install('" + lib + "')"
-            command = [
-                'import upip',
-                pip_command,
-            ]
+            command = ["import upip", pip_command]
             try:
                 out, err = sbfs.send_cmd(command, self.serial)
             except IOError as e:
-                QMessageBox.critical(None, _("WiFi Connect Error"), _("{0}".format(e)), QMessageBox.Yes)
+                QMessageBox.critical(
+                    None,
+                    _("Wi-Fi Connect Error"),
+                    _("{0}".format(e)),
+                    QMessageBox.Yes,
+                )
                 self.close_serial_link()
                 self.button_conn.setEnabled(True)
                 return
 
-            if b'Error' in out:
-                result.update({lib: 'NG\n' + str(out) + '\n'})
+            if b"Error" in out:
+                result.update({lib: "NG\n" + str(out) + "\n"})
             else:
-                result.update({lib: 'OK\n' + str(out) + '\n'})
+                result.update({lib: "OK\n" + str(out) + "\n"})
 
-        print(result)
-
-        information = ''
+        information = ""
         for key in result.keys():
-            information += '[' + key +']\n' + result[key] + '\n'
-        print(information)
+            information += "[" + key + "]\n" + result[key] + "\n"
 
-        self.target.view.show_message('UPIP Result', information)
+        self.target.view.show_message("UPIP Result", information)
 
         self.close_serial_link()
 
     def wifi_info_changed(self):
-        if (len(self.line_pwd.text()) > 0) and (self.list_ssid.currentText() != ''):
+        if (len(self.line_pwd.text()) > 0) and (
+            self.list_ssid.currentText() != ""
+        ):
             self.button_conn.setEnabled(True)
         else:
             self.button_conn.setEnabled(False)
 
     def library_info_changed(self):
-        if (len(self.text_area.toPlainText().strip()) > 0):
+        if len(self.text_area.toPlainText().strip()) > 0:
             self.button_inst.setEnabled(True)
         else:
             self.button_inst.setEnabled(False)
@@ -746,13 +776,15 @@ class AdminDialog(QDialog):
             settings.get("minify", False), settings.get("microbit_runtime", "")
         )
 
-        print(mode.name)
         if mode.name == "Artec Studuino:Bit MicroPython":
             self.tabs.addTab(self.esp32_widget, _("Firmware flasher"))
 
             self.esp32_package_widget = ESP32PackagesWidget()
             self.esp32_package_widget.setup(mode)
-            self.tabs.addTab(self.esp32_package_widget, _("MicroPython Third Party Packages"))
+            self.tabs.addTab(
+                self.esp32_package_widget,
+                _("MicroPython Third Party Packages"),
+            )
         else:
             self.tabs.addTab(self.microbit_widget, _("BBC micro:bit Settings"))
         self.package_widget = PackagesWidget()

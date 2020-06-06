@@ -22,11 +22,7 @@ import time
 from mu.modes.base import MicroPythonMode, StuduinoBitFileManager
 from mu.modes.api import STUDUINOBIT_APIS, SHARED_APIS
 from mu.interface.panes import CHARTS
-from PyQt5.QtCore import (
-    QIODevice,
-    QThread,
-    QTimer,
-)
+from PyQt5.QtCore import QIODevice, QThread, QTimer
 from PyQt5.QtWidgets import (
     QDialog,
     QGridLayout,
@@ -156,9 +152,9 @@ class StuduinoBitMode(MicroPythonMode):
                 if self.repl:
                     self.set_buttons(files_sb=False, flash_sb=False)
 
-                    #アップデート時間設定
+                    # アップデート時間設定
                     if not self.timer.isActive():
-                        self.timer.start(1000)    #1sごとにis_connectingを呼び出し
+                        self.timer.start(1000)  # 1sごとにis_connectingを呼び出し
 
         else:
             message = _("REPL and file system cannot work at the same time.")
@@ -205,7 +201,7 @@ class StuduinoBitMode(MicroPythonMode):
         buff = bytearray()
         while True:
             if not (self.serial.waitForReadyRead(timeout)):
-                raise TimeoutError(_('waitForReadyRead method timeout'))
+                raise TimeoutError(_("waitForReadyRead method timeout"))
 
             data = bytes(self.serial.readAll())  # get all the available bytes.
             buff.extend(data)
@@ -284,7 +280,12 @@ class StuduinoBitMode(MicroPythonMode):
                 return
         except Exception as e:
             logger.exception("Error reboot in transfer: %s", e)
-            QMessageBox.critical(None, _("File Save Error."), _("Failed to save the file."), QMessageBox.Yes)
+            QMessageBox.critical(
+                None,
+                _("File Save Error."),
+                _("Failed to save the file."),
+                QMessageBox.Yes,
+            )
             self.close_serial_link()
             return
 
@@ -294,7 +295,12 @@ class StuduinoBitMode(MicroPythonMode):
             self.reboot_and_prompt(serial)
         except Exception as e:
             logger.exception("Error reboot in transfer: %s", e)
-            QMessageBox.critical(None, _("Reboot Error"), _("Please connect the USB cable again."), QMessageBox.Yes)
+            QMessageBox.critical(
+                None,
+                _("Reboot Error"),
+                _("Please connect the USB cable again."),
+                QMessageBox.Yes,
+            )
             self.close_serial_link()
             return
 
@@ -306,7 +312,12 @@ class StuduinoBitMode(MicroPythonMode):
             upload(serial, usr_file)
         except Exception as e:
             logger.exception("Error upload in transfer: %s", e)
-            QMessageBox.critical(None, _("Uploade Error"), _("Please connect the USB cable again."), QMessageBox.Yes)
+            QMessageBox.critical(
+                None,
+                _("Uploade Error"),
+                _("Please connect the USB cable again."),
+                QMessageBox.Yes,
+            )
             self.close_serial_link()
             return
 
@@ -322,7 +333,9 @@ class StuduinoBitMode(MicroPythonMode):
                 "Since the transfer is completed, it will work\n"
                 " if you reconnect the USB cable."
             )
-            QMessageBox.critical(None, _("Restart Error"), information, QMessageBox.Yes)
+            QMessageBox.critical(
+                None, _("Restart Error"), information, QMessageBox.Yes
+            )
             self.close_serial_link()
             return
 
@@ -338,9 +351,9 @@ class StuduinoBitMode(MicroPythonMode):
             if self.plotter:
                 self.set_buttons(files_sb=False, flash_sb=False)
 
-                #アップデート時間設定
+                # アップデート時間設定
                 if not self.timer.isActive():
-                    self.timer.start(1000)    #1sごとにis_connectingを呼び出し
+                    self.timer.start(1000)  # 1sごとにis_connectingを呼び出し
             elif not (self.repl or self.plotter):
                 self.set_buttons(files_sb=True, flash_sb=True)
                 if self.timer.isActive():
@@ -364,7 +377,7 @@ class StuduinoBitMode(MicroPythonMode):
             self.open_serial_link(device_port)
         except Exception as e:
             logger.exception("Error reboot in run: %s", e)
-            raise RuntimeError(_('Open Serial Error')) from e
+            raise RuntimeError(_("Open Serial Error")) from e
 
         serial = self.serial
 
@@ -377,22 +390,19 @@ class StuduinoBitMode(MicroPythonMode):
         except Exception as e:
             logger.exception("Error reboot in run: %s", e)
             self.close_serial_link()
-            raise RuntimeError(_('Reboot Error')) from e
+            raise RuntimeError(_("Reboot Error")) from e
 
         # Set start to send command
-        command = [
-            "import machine",
-            'machine.nvs_setint("lastSelected", 99)',
-        ]
+        command = ["import machine", 'machine.nvs_setint("lastSelected", 99)']
         try:
             # # for simple debug
             # print('reset')
             # time.sleep(1)
-            sbfs.execute(command, serial,)
+            sbfs.execute(command, serial)
         except IOError as e:
             logger.exception("Error reset slot in run: %s", e)
             self.close_serial_link()
-            raise RuntimeError(_('Reset Error')) from e
+            raise RuntimeError(_("Reset Error")) from e
 
         self.close_serial_link()
 
@@ -404,15 +414,20 @@ class StuduinoBitMode(MicroPythonMode):
         a hex file and flashes it all onto the connected device.
         """
         if not self.repl:
-            try:
-                # Initialize Studuino:bit
-                self.initialize()
-            except Exception as e:
-                if e.args[0] == _('Open Serial Error'):
-                    self.view.show_message(self.message, self.information)
-                else:
-                    self.view.show_message(e.args[0], _("Please connect the USB cable again."))
-                return
+            if not self.plotter:
+                try:
+                    # Initialize Studuino:bit
+                    self.initialize()
+                except Exception as e:
+                    if e.args[0] == _("Open Serial Error"):
+                        self.view.show_message(self.message, self.information)
+                    else:
+                        self.view.show_message(
+                            e.args[0], _("Please connect the USB cable again.")
+                        )
+                    return
+            else:
+                self.add_repl()
 
         logger.info("Running script.")
         # Grab the Python script.
@@ -430,8 +445,9 @@ class StuduinoBitMode(MicroPythonMode):
 
         python_script = tab.text().replace("\r\n", "\n")
         python_script = python_script.split("\n")
+        # python_script.insert(0, 'print()')
 
-        print(python_script)
+        logger.info(python_script)
 
         if not self.repl:
             self.toggle_repl(None)

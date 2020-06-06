@@ -9,7 +9,7 @@ from PyQt5.QtCore import QLocale
 localedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "locale"))
 language_code = QLocale.system().name()
 # DEBUG/TRANSLATE: override the language code here (e.g. to Chinese).
-# language_code = 'zh'
+language_code = 'en'
 gettext.translation(
     "mu", localedir=localedir, languages=[language_code], fallback=True
 ).install()
@@ -30,4 +30,4 @@ __url__ = "https://github.com/mu-editor/mu"
 __author__ = "Nicholas H.Tollervey"
 __email__ = "ntoll@ntoll.org"
 
-__sbm_version__ = "0.11.1"
+__sbm_version__ = "1.0.1"

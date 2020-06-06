@@ -1280,7 +1280,7 @@ class Editor:
         packages = installed_packages()
         with open(LOG_FILE, "r", encoding="utf8") as logfile:
 
-            if (self.mode == 'studuinobit'):
+            if self.mode == "studuinobit":
                 target = self.modes[self.mode]
                 if target.repl:
                     target.toggle_repl(None)
@@ -1290,7 +1290,10 @@ class Editor:
                     target.toggle_files(None)
 
             new_settings = self._view.show_admin(
-                logfile.read(), settings, "\n".join(packages), self.modes[self.mode]
+                logfile.read(),
+                settings,
+                "\n".join(packages),
+                self.modes[self.mode],
             )
         if new_settings:
             self.envars = extract_envars(new_settings["envars"])

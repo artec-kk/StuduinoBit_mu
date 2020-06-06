@@ -341,7 +341,7 @@ class MicroPythonREPLPane(QTextEdit):
         commands.append(b"\r")
         commands.append(b"\x04")
         raw_off = [b"\x02"]
-        command_sequence = raw_on + commands + raw_off
+        command_sequence = raw_on + newline + commands + raw_off
         self.execute(command_sequence)
 
     def execute(self, commands):
@@ -355,7 +355,7 @@ class MicroPythonREPLPane(QTextEdit):
             self.serial.write(command)
             remainder = commands[1:]
             remaining_task = lambda commands=remainder: self.execute(commands)
-            QTimer.singleShot(2, remaining_task)
+            QTimer.singleShot(10, remaining_task)
 
 
 class MuFileList(QListWidget):
@@ -1820,6 +1820,8 @@ class StuduinoBitREPLPane(MicroPythonREPLPane):
             pass
         i = 0
         while i < len(data):
+            # print(data[i], end=", ")
+
             if data[i] == 8:  # \b
                 tc.movePosition(QTextCursor.Left)
                 self.setTextCursor(tc)
