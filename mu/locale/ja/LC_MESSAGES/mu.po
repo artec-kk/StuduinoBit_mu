@@ -1933,3 +1933,95 @@ msgstr "pyatcrobo2.parts.Accelerometer.get_z() \n Z軸の加速度を返しま�
 
 msgid "pyatcrobo2.parts.Accelerometer.get_values()\nGet the acceleration measurements in all axes at once, \nas a three-element tuple of integers (ordered as X, Y, Z)."
 msgstr "pyatcrobo2.parts.Accelerometer.get_values() \n X,Y,Z軸の加速度をタプルで返します。(get_x(), get_y(), get_z())。"
+
+msgid "The ESP Firmware flasher requires the esptool package to be installed.\nSelect \"Third Party Packages\", add 'esptool' and click 'OK'"
+msgstr "本機能は、exptoolパッケージを使用します。\n\"Third Party Packages\"タブを選択して\nesptoolを追加して、OKボタンをクリックしてください。"
+
+msgid "How to flash MicroPython to your device"
+msgstr "Studuino:bitにMicroPythonを書き込む手順"
+
+msgid "&nbsp;1. Download firmware from the <br/>"
+"&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"https://www.artec-kk.co.jp/artecrobo2/data/mp/micropython.bin\">"
+"https://www.artec-kk.co.jp/artecrobo2/data/mp/micropython.bin</a><br/>"
+"&nbsp;2. Connect your device<br/>"
+"&nbsp;3. Load the .bin file below using the 'Browse' button<br/>"
+"&nbsp;4. Press 'Write firmware'"
+msgstr "&nbsp;1. 下記URLからファームウェアをダウンロードしてください<br/>"
+"&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"https://www.artec-kk.co.jp/artecrobo2/data/mp/micropython.bin\">"
+"https://www.artec-kk.co.jp/artecrobo2/data/mp/micropython.bin</a><br/>"
+"&nbsp;2. Studuino:bitとPCをUSBケーブルで接続してください<br/>"
+"&nbsp;3. 「選択」ボタンをクリックして、ダウンロードしたファームウェアを選択してください<br/>"
+"&nbsp;4. 「書き込み」ボタンをクリックしてください"
+
+msgid "Firmware (.bin):"
+msgstr "ファームウェア (.bin)"
+
+msgid "Browse"
+msgstr "選択"
+
+msgid "Write firmware"
+msgstr "書き込み"
+
+msgid "How to install MicroPython library to your device"
+msgstr "MicroPythonライブラリをインストールする手順"
+
+msgid "&nbsp;1. Connect your device<br/>"
+"&nbsp;2. Press 'Wi-Fi Scan' in Wi-Fi Connection area<br/>"
+"&nbsp;4. Select SSID from the combo box<br/>"
+"&nbsp;5. Write password in the text area<br/>"
+"&nbsp;6. Press 'Connect'<br/>"
+"&nbsp;7. Write libraries you want install in Update/Install libraries area<br/>"
+"&nbsp;8. Press 'Start'<br/>"
+msgstr "&nbsp;1. Studuino:bitとPCをUSBケーブルで接続してください。<br/>"
+"&nbsp;2. 「Wi-Fi接続」エリアの「スキャン」ボタンをクリックしてください<br/>"
+"&nbsp;4. SSIDを選択してください<br/>"
+"&nbsp;5. パスワードを入力してください<br/>"
+"&nbsp;6. 「接続」ボタンをクリックしてください<br/>"
+"&nbsp;7. 「インストール / 更新」エリアにライブラリを入力してください<br/>"
+"&nbsp;8. 「スタート」ボタンをクリックしてください<br/>"
+
+msgid "Password:"
+msgstr "パスワード: "
+
+msgid "Wi-Fi Scan"
+msgstr "スキャン"
+
+msgid "Wi-Fi Connection"
+msgstr "Wi-Fi接続"
+
+msgid "Connect"
+msgstr "接続"
+
+msgid "Start"
+msgstr "スタート"
+
+msgid "Update/Install libraries"
+msgstr "インストール / 更新"
+
+msgid "Cannot connect to device on port {}"
+msgstr "{} ポートにStuduino:bitと接続できません"
+
+msgid "Open Serial Error"
+msgstr "シリアルポートエラー"
+
+msgid "Please connect the USB cable again."
+msgstr "USBケーブルを再接続してください"
+
+msgid "Scan Error"
+msgstr "スキャン エラー"
+
+msgid "Wi-Fi Connect Error"
+msgstr "Wi-Fi接続エラー"
+
+msgid "Disconnect"
+msgstr "切断"
+
+msgid "Firmware flasher"
+msgstr "MicroPython書き込み"
+
+msgid "MicroPython Third Party Packages"
+msgstr "MicroPython パッケージ"
+
+msgid "Third Party Packages"
+msgstr "Python パッケージ"
+

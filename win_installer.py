@@ -246,39 +246,43 @@ def run(bitness, repo_root):
     download and extract the tkinter related assets, and run pynsist.
     """
     with tempfile.TemporaryDirectory(prefix="mu-pynsist-") as work_dir:
-        print("Temporary working directory at", work_dir)
+        print("1.Temporary working directory at", work_dir)
 
-        print("Creating the packaging virtual environment.")
+        print("2.Creating the packaging virtual environment.")
         venv_python = create_packaging_venv(work_dir)
 
-        print("Updating pip in the virtual environment", venv_python)
+        print("3.Updating pip in the virtual environment", venv_python)
         subprocess.run(
             [venv_python, "-m", "pip", "install", "--upgrade", "pip"]
         )
 
-        print("Installing mu with", venv_python)
+        print("4.Installing mu with", venv_python, ":", repo_root)
         subprocess.run([venv_python, "-m", "pip", "install", repo_root])
 
         pynsist_cfg = os.path.join(work_dir, "pynsist.cfg")
-        print("Creating pynsist configuration file", pynsist_cfg)
+        print(
+            "5.Creating pynsist configuration file", work_dir, ":", pynsist_cfg
+        )
         installer_exe = create_pynsist_cfg(venv_python, repo_root, pynsist_cfg)
 
         url = TKINTER_ASSETS_URLS[bitness]
-        print("Downloading {}bit tkinter assets from {}.".format(bitness, url))
+        print(
+            "6.Downloading {}bit tkinter assets from {}.".format(bitness, url)
+        )
         filename = download_file(url, work_dir)
 
-        print("Unzipping tkinter assets to", work_dir)
+        print("7.Unzipping tkinter assets to", work_dir)
         unzip_file(filename, work_dir)
 
-        print("Installing pynsist.")
+        print("8.Installing pynsist. ", PYNSIST_REQ)
         subprocess.run([venv_python, "-m", "pip", "install", PYNSIST_REQ])
 
         mu_pynsist_script = os.path.join(repo_root, "package", "mu_nsist.py")
-        print("Running custom pynsist script at", mu_pynsist_script)
+        print("9.Running custom pynsist script at", mu_pynsist_script)
         subprocess.run([venv_python, mu_pynsist_script, pynsist_cfg])
 
         destination_dir = os.path.join(repo_root, "dist")
-        print("Copying installer file to", destination_dir)
+        print("10.Copying installer file to", destination_dir)
         os.makedirs(destination_dir, exist_ok=True)
         shutil.copy(
             os.path.join(work_dir, "build", "nsis", installer_exe),
