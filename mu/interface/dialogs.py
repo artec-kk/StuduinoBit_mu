@@ -24,7 +24,7 @@ import shutil
 import re
 from PyQt5 import QtCore
 from PyQt5.QtCore import QSize, QProcess, QTimer, Qt, QIODevice
-from PyQt5.QtSerialPort import QSerialPort
+from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 from PyQt5.QtWidgets import (
     QHBoxLayout,
     QVBoxLayout,
@@ -250,16 +250,16 @@ class SBFirmwareFlasherWidget(QWidget):
 
         # Check whether esptool is installed, show error if not
         esptool_installed = os.path.exists(MODULE_DIR + "/esptool.py")
-        if not esptool_installed:
-            error_msg = _(
-                "The ESP Firmware flasher requires the esptool "
-                "package to be installed.\n"
-                "Select \"Third Party Packages\", add 'esptool' "
-                "and click 'OK'"
-            )
-            error_label = QLabel(error_msg)
-            widget_layout.addWidget(error_label)
-            return
+        # if not esptool_installed:
+        #     error_msg = _(
+        #         "The ESP Firmware flasher requires the esptool "
+        #         "package to be installed.\n"
+        #         "Select \"Third Party Packages\", add 'esptool' "
+        #         "and click 'OK'"
+        #     )
+        #     error_label = QLabel(error_msg)
+        #     widget_layout.addWidget(error_label)
+        #     return
 
         # Instructions
         grp_instructions = QGroupBox(
@@ -322,12 +322,24 @@ class SBFirmwareFlasherWidget(QWidget):
             self.txtFolder.setText(filename)
 
     def update_firmware(self):
-        esptool = MODULE_DIR + "/esptool.py"
-        write_command = (
-            'python "{}" --baud 1500000 ' 'write_flash 0x20000 "{}"'
-        ).format(esptool, self.txtFolder.text())
+        port = ''
+        ap = QSerialPortInfo.availablePorts()
+        for p in ap:
+            pid = p.productIdentifier()
+            vid = p.vendorIdentifier()
+            if int(vid) == 0x20A0:
+                pn = p.portName()
+                sn = p.serialNumber
+                port = '/dev/{}'.format(pn)
+                break
 
-        self.commands = [write_command]
+        p, x = os.path.split(sys.executable)
+        esptool = p+"/../../app_packages/esptool.py"
+        arg = ' {} --baud 1500000 write_flash 0x20000 "{}"'.format(esptool, self.txtFolder.text())
+        if port != '':
+            arg = ' {} --port {} --baud 1500000 write_flash 0x20000 "{}"'.format(esptool, port, self.txtFolder.text())
+
+        self.commands = [sys.executable + arg]
         self.run_esptool()
 
     def run_esptool(self):
