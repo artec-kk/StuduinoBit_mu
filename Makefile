@@ -2,6 +2,18 @@ XARGS := xargs -0 $(shell test $$(uname) = Linux && echo -r)
 GREP_T_FLAG := $(shell test $$(uname) = Linux && echo -T)
 export PYFLAKES_BUILTINS=_
 
+# Embeddable Python runtime bundled into the macOS application. Apple Silicon
+# (arm64) needs a native arm64 build so the packaged app runs without Rosetta,
+# while Intel Macs keep the original x86_64 build. The runtime to use is chosen
+# from the host architecture reported by `uname -m`, and can be overridden by
+# setting MACOS_SUPPORT_PKG on the command line.
+MACOS_ARCH := $(shell uname -m)
+ifeq ($(MACOS_ARCH),arm64)
+MACOS_SUPPORT_PKG ?= https://github.com/mu-editor/mu_portable_python_macos/releases/download/0.0.6-arm64/python3-reduced-arm64.tar.gz
+else
+MACOS_SUPPORT_PKG ?= https://github.com/mu-editor/mu_portable_python_macos/releases/download/0.0.6/python3-reduced.tar.gz
+endif
+
 all:
 	@echo "\nThere is no default Makefile target right now. Try:\n"
 	@echo "make run - run the local development version of Mu."
@@ -106,7 +118,7 @@ win64: check
 
 macos: check
 	@echo "\nPackaging Mu into a macOS native application."
-	python setup.py macos --support-pkg=https://github.com/mu-editor/mu_portable_python_macos/releases/download/0.0.6/python3-reduced.tar.gz
+	python setup.py macos --support-pkg=$(MACOS_SUPPORT_PKG)
 
 video: clean
 	@echo "\nFetching contributor avatars."

@@ -21,9 +21,20 @@ with open(os.path.join(base_dir, "CHANGES.rst"), encoding="utf8") as f:
 
 
 install_requires = [
+    # Intel/x86_64 desktops keep the historically pinned Qt versions.
+    # The ``"arm" not in platform_machine`` marker excludes both the
+    # Raspberry Pi (which uses the system Qt packages) and Apple Silicon
+    # (``arm64``), which is handled separately below.
     'PyQt5==5.13.2;"arm" not in platform_machine',
     'QScintilla==2.11.3;"arm" not in platform_machine',
     'PyQtChart==5.13.1;"arm" not in platform_machine',
+    # Apple Silicon (``arm64``) needs newer Qt wheels that ship native
+    # arm64 binaries so Mu can run without Rosetta. On the Raspberry Pi
+    # ``platform_machine`` is ``armv7l``/``aarch64`` (not ``arm64``), so
+    # these requirements only apply to macOS on Apple Silicon.
+    'PyQt5==5.15.7;platform_machine == "arm64"',
+    'QScintilla==2.13.3;platform_machine == "arm64"',
+    'PyQtChart==5.15.6;platform_machine == "arm64"',
     # `flake8` is actually a testing/packaging dependency that, among other
     # packages, brings in `pycodestyle` and `pyflakes` which are runtime
     # dependencies. For the sake of "locality", it is being declared here,
