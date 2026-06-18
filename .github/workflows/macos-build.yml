@@ -1,9 +1,8 @@
-# Builds the native macOS application for Mu.
+# Builds the native arm64 (Apple Silicon) macOS application for Mu.
 #
-# Apple is dropping Rosetta support, so we need a native arm64 (Apple Silicon)
-# build in addition to the historical Intel (x86_64) one. arm64 binaries can
-# only be produced on an Apple Silicon runner, hence the `macos-14` runner;
-# the Intel build keeps running on `macos-13`.
+# Apple is dropping Rosetta support, so Mu is built natively for arm64 only.
+# arm64 binaries can only be produced on an Apple Silicon runner, hence the
+# `macos-14` runner.
 name: macOS build
 
 on:
@@ -14,18 +13,8 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.arch }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Apple Silicon (arm64) native build.
-          - os: macos-14
-            arch: arm64
-          # Intel (x86_64) build, kept for backwards compatibility.
-          - os: macos-13
-            arch: x86_64
+    name: arm64 (macos-14)
+    runs-on: macos-14
 
     steps:
       - uses: actions/checkout@v4
@@ -57,10 +46,10 @@ jobs:
       - name: Create the distributable archive
         run: |
           mkdir -p dist
-          zip -r -X "dist/mu-editor-${{ matrix.arch }}.zip" macOS/mu-editor.app
+          zip -r -X "dist/mu-editor-arm64.zip" macOS/mu-editor.app
 
       - name: Upload the build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mu-editor-${{ matrix.arch }}
-          path: dist/mu-editor-${{ matrix.arch }}.zip
+          name: mu-editor-arm64
+          path: dist/mu-editor-arm64.zip

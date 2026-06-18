@@ -201,16 +201,15 @@ Apple Silicon (arm64)
 =====================
 
 Apple is phasing out Rosetta 2, the translation layer that lets Intel
-(``x86_64``) applications run on Apple Silicon Macs. To keep Mu working without
-Rosetta we build a native ``arm64`` application in addition to the historical
-Intel one.
+(``x86_64``) applications run on Apple Silicon Macs. Mu is therefore built
+natively for ``arm64`` only; the Intel (``x86_64``) build has been dropped.
 
-A native ``arm64`` build differs from the Intel build in a few ways:
+A native ``arm64`` build differs from the previous Intel build in a few ways:
 
 * **Host architecture.** ``arm64`` binaries can only be produced on an Apple
-  Silicon machine. The automated build therefore runs on GitHub Actions using
-  the ``macos-14`` (Apple Silicon) runner, while the Intel build keeps using an
-  Intel runner. See ``.github/workflows/macos-build.yml``.
+  Silicon machine. The automated build runs on GitHub Actions using the
+  ``macos-14`` (Apple Silicon) runner. See
+  ``.github/workflows/macos-build.yml``.
 * **Embedded Python runtime.** The bundled Python must be a native ``arm64``
   build of Python 3.9 or later. The ``macos`` target in the ``Makefile``
   inspects ``uname -m`` and selects the matching
@@ -230,7 +229,7 @@ You can confirm the resulting application is a native ``arm64`` binary with::
     $ file macOS/mu-editor.app/Contents/MacOS/mu-editor
     $ lipo -info macOS/mu-editor.app/Contents/MacOS/mu-editor
 
-As with the Intel build, the automatically generated ``arm64`` assets are
+As with the previous build, the automatically generated ``arm64`` assets are
 un-signed. For full releases the ``.app`` is signed with our Apple developer
 key and notarized (``codesign`` + ``notarytool``) as a manual step.
 
