@@ -67,8 +67,8 @@ def _generate_python_files(contents, dirpath):
 
 @contextlib.contextmanager
 def generate_python_files(contents, dirpath=None):
-    """Create a temp directory and populate it with .py files, then remove it
-    """
+    """Create a temp directory and populate it with .py files, then remove
+    it"""
     dirpath = dirpath or tempfile.mkdtemp(prefix="mu-")
     yield list(_generate_python_files(contents, dirpath))
     shutil.rmtree(dirpath)
@@ -76,8 +76,8 @@ def generate_python_files(contents, dirpath=None):
 
 @contextlib.contextmanager
 def generate_python_file(text="", dirpath=None):
-    """Create a temp directory and populate it with on .py file, then remove it
-    """
+    """Create a temp directory and populate it with on .py file, then remove
+    it"""
     dirpath = dirpath or tempfile.mkdtemp(prefix="mu-")
     for filepath in _generate_python_files([text], dirpath):
         yield filepath

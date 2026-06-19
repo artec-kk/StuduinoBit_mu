@@ -22,7 +22,7 @@ import logging
 import csv
 import shutil
 import re
-from PyQt5 import QtCore
+import serial
 from PyQt5.QtCore import QSize, QProcess, QTimer, Qt, QIODevice
 from PyQt5.QtSerialPort import QSerialPort
 from PyQt5.QtWidgets import (
@@ -47,7 +47,6 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QTextCursor
 from mu.resources import load_icon
-from multiprocessing import Process
 from mu.logic import MODULE_DIR
 from mu.contrib import sbfs
 
@@ -269,8 +268,11 @@ class SBFirmwareFlasherWidget(QWidget):
         grp_instructions.setLayout(grp_instructions_vbox)
         instructions = _(
             "&nbsp;1. Download firmware from the <br/>"
-            '&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://www.artec-kk.co.jp/artecrobo2/data/mp/micropython.bin">'
-            "https://www.artec-kk.co.jp/artecrobo2/data/mp/micropython.bin</a><br/>"
+            "&nbsp;&nbsp;&nbsp;&nbsp;"
+            '<a href="https://www.artec-kk.co.jp/artecrobo2/data/mp/'
+            'micropython.bin">'
+            "https://www.artec-kk.co.jp/artecrobo2/data/mp/"
+            "micropython.bin</a><br/>"
             "&nbsp;2. Connect your device<br/>"
             "&nbsp;3. Load the .bin file below using the 'Browse' button<br/>"
             "&nbsp;4. Press 'Write firmware'"
@@ -424,7 +426,8 @@ class ESP32PackagesWidget(QWidget):
             "&nbsp;4. Select SSID from the combo box<br/>"
             "&nbsp;5. Write password in the text area<br/>"
             "&nbsp;6. Press 'Connect'<br/>"
-            "&nbsp;7. Write libraries you want install in Update/Install libraries area<br/>"
+            "&nbsp;7. Write libraries you want install in "
+            "Update/Install libraries area<br/>"
             "&nbsp;8. Press 'Start'<br/>"
         )
         label = QLabel(instructions)
@@ -554,7 +557,7 @@ class ESP32PackagesWidget(QWidget):
         try:
             device_port, serial_number = self.target.find_device()
             self.open_serial_link(device_port)
-        except Exception as e:
+        except Exception:
             self.target.view.show_message(self.message, self.information)
             return
 
@@ -676,7 +679,7 @@ class ESP32PackagesWidget(QWidget):
 
         libs = self.text_area.toPlainText()
         libs = libs.split("\n")
-        libs = [l for l in libs if l != ""]
+        libs = [lib for lib in libs if lib != ""]
         logger.info(libs)
 
         try:
