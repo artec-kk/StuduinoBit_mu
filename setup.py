@@ -45,7 +45,10 @@ install_requires = [
     "pyflakes >= 2.1.0, < 2.2.0",
     "pyserial==3.4",
     "qtconsole==4.4.3",
-    "pgzero==1.2",
+    # ``pgzero`` is intentionally not a hard dependency: it pulls in
+    # ``pygame``, whose native wheels fail to build on macOS arm64 (Apple
+    # Silicon). The Pygame Zero mode is optional and is enabled at runtime
+    # only when ``pgzero`` happens to be installed (see ``mu/app.py``).
     "appdirs>=1.4.3",
     "semver>=2.8.0",
     "nudatus>=0.0.3",
