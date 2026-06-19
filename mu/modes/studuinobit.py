@@ -35,7 +35,7 @@ from PyQt5.QtWidgets import (
 from mu.contrib import sbfs
 from mu.logic import HOME_DIRECTORY, WORKSPACE_NAME, save_and_encode
 
-from serial import Serial
+import serial
 from PyQt5.QtSerialPort import QSerialPort
 
 logger = logging.getLogger(__name__)
@@ -266,7 +266,7 @@ class StuduinoBitMode(MicroPythonMode):
         try:
             device_port, serial_number = self.find_device()
             self.open_serial_link(device_port)
-        except Exception as e:
+        except Exception:
             self.view.show_message(self.message, self.information)
             return
 
@@ -275,7 +275,7 @@ class StuduinoBitMode(MicroPythonMode):
         # save usr*.py local
         try:
             reg_num, usr_file = save()
-            if reg_num == None and usr_file == None:
+            if reg_num is None and usr_file is None:
                 self.close_serial_link()
                 return
         except Exception as e:
