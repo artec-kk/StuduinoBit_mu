@@ -1,0 +1,55 @@
+# Builds the native arm64 (Apple Silicon) macOS application for Mu.
+#
+# Apple is dropping Rosetta support, so Mu is built natively for arm64 only.
+# arm64 binaries can only be produced on an Apple Silicon runner, hence the
+# `macos-14` runner.
+name: macOS build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: arm64 (macos-14)
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Report architecture
+        run: |
+          uname -a
+          python -c "import platform; print(platform.machine())"
+
+      - name: Install Mu and its dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install .[dev]
+
+      - name: Package Mu into a native macOS application
+        run: make macos
+
+      - name: Verify the application architecture
+        run: |
+          APP_BIN="macOS/mu-editor.app/Contents/MacOS/mu-editor"
+          file "$APP_BIN" || true
+          lipo -info "$APP_BIN" || true
+
+      - name: Create the distributable archive
+        run: |
+          mkdir -p dist
+          zip -r -X "dist/mu-editor-arm64.zip" macOS/mu-editor.app
+
+      - name: Upload the build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mu-editor-arm64
+          path: dist/mu-editor-arm64.zip

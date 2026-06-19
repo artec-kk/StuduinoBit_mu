@@ -197,6 +197,42 @@ automatically generated installable for OSX. These assets are un-signed, so OSX
 will complain about Mu coming from an unknown developer. However, for full
 releases we sign the .app with our Apple developer key (a manual process).
 
+Apple Silicon (arm64)
+=====================
+
+Apple is phasing out Rosetta 2, the translation layer that lets Intel
+(``x86_64``) applications run on Apple Silicon Macs. Mu is therefore built
+natively for ``arm64`` only; the Intel (``x86_64``) build has been dropped.
+
+A native ``arm64`` build differs from the previous Intel build in a few ways:
+
+* **Host architecture.** ``arm64`` binaries can only be produced on an Apple
+  Silicon machine. The automated build runs on GitHub Actions using the
+  ``macos-14`` (Apple Silicon) runner. See
+  ``.github/workflows/macos-build.yml``.
+* **Embedded Python runtime.** The bundled Python must be a native ``arm64``
+  build of Python 3.9 or later. The ``macos`` target in the ``Makefile``
+  inspects ``uname -m`` and selects the matching
+  `portable Python runtime <https://github.com/mu-editor/mu_portable_python_macos>`_
+  automatically. You can override the runtime with
+  ``make macos MACOS_SUPPORT_PKG=<url>``.
+* **Qt wheels.** ``PyQt5``/``QScintilla``/``PyQtChart`` only ship native
+  ``arm64`` wheels from their 5.15.x releases onwards, so ``setup.py`` pins
+  newer versions when ``platform_machine == "arm64"``.
+
+To build locally on an Apple Silicon Mac, run::
+
+    $ make macos
+
+You can confirm the resulting application is a native ``arm64`` binary with::
+
+    $ file macOS/mu-editor.app/Contents/MacOS/mu-editor
+    $ lipo -info macOS/mu-editor.app/Contents/MacOS/mu-editor
+
+As with the previous build, the automatically generated ``arm64`` assets are
+un-signed. For full releases the ``.app`` is signed with our Apple developer
+key and notarized (``codesign`` + ``notarytool``) as a manual step.
+
 Linux Packages
 ++++++++++++++
 
