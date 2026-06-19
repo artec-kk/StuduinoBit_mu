@@ -32,8 +32,8 @@ install_requires = [
     # arm64 binaries so Mu can run without Rosetta. On the Raspberry Pi
     # ``platform_machine`` is ``armv7l``/``aarch64`` (not ``arm64``), so
     # these requirements only apply to macOS on Apple Silicon.
-    'PyQt5==5.15.7;platform_machine == "arm64"',
-    'QScintilla==2.13.3;platform_machine == "arm64"',
+    'PyQt5==5.15.10;platform_machine == "arm64"',
+    'QScintilla==2.14.1;platform_machine == "arm64"',
     'PyQtChart==5.15.6;platform_machine == "arm64"',
     # `flake8` is actually a testing/packaging dependency that, among other
     # packages, brings in `pycodestyle` and `pyflakes` which are runtime
